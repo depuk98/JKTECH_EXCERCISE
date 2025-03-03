@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Login - FastAPI User Management{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="form-container mt-5">
+            <h2 class="text-center mb-4">Login</h2>
+            <div class="alert alert-danger d-none" id="error-message"></div>
+            <form id="login-form">
+                <div class="mb-3">
+                    <label for="username" class="form-label">Username</label>
+                    <input type="text" class="form-control" id="username" name="username" required>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" class="form-control" id="password" name="password" required>
+                </div>
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary">Login</button>
+                </div>
+            </form>
+            <div class="text-center mt-3">
+                <p>Don't have an account? <a href="/signup">Sign up</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.getElementById('login-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const errorMessage = document.getElementById('error-message');
+        
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    'username': username,
+                    'password': password,
+                }),
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                // Store token in localStorage
+                localStorage.setItem('token', data.access_token);
+                
+                // Redirect to dashboard
+                window.location.href = '/dashboard';
+            } else {
+                // Show error message
+                errorMessage.textContent = data.detail || 'Login failed. Please check your credentials.';
+                errorMessage.classList.remove('d-none');
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            errorMessage.textContent = 'An error occurred. Please try again.';
+            errorMessage.classList.remove('d-none');
+        }
+    });
+</script>
+{% endblock %} 

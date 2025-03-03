@@ -4,6 +4,7 @@ import tempfile
 import asyncio
 import datetime
 import logging
+import re
 from typing import List, Dict, Optional, Tuple, BinaryIO, Any
 from pathlib import Path
 
@@ -74,17 +75,18 @@ class DocumentService:
             status=document_in.status
         )
         
-        db.add(document)
-        db.commit()
-        db.refresh(document)
-        
-        # Save document ID for the background task
-        document_id = document.id
-        
-        # Create a copy of the file for processing
-        # This is necessary because the file might be closed after the request is completed
+        # Safely handle the document creation
         temp_file_path = None
         try:
+            db.add(document)
+            db.commit()
+            db.refresh(document)
+            
+            # Save document ID for the background task
+            document_id = document.id
+            
+            # Create a copy of the file for processing
+            # This is necessary because the file might be closed after the request is completed
             with tempfile.NamedTemporaryFile(delete=False, suffix=Path(file.filename).suffix) as temp_file:
                 # Reset file position
                 await file.seek(0)
@@ -98,19 +100,22 @@ class DocumentService:
             asyncio.create_task(
                 DocumentService._process_document(document_id, temp_file_path, file.content_type)
             )
+            
+            return document
+            
         except Exception as e:
             # Clean up temp file if it exists
             if temp_file_path and os.path.exists(temp_file_path):
                 os.unlink(temp_file_path)
+                
+            # Rollback the transaction
+            db.rollback()
+            
             logger.error(f"Error preparing document for processing: {str(e)}")
-            
-            # Update document status to error
-            document.status = "error"
-            db.commit()
-            
-            raise e
-        
-        return document
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error uploading document: {str(e)}"
+            )
     
     @staticmethod
     async def _process_document(document_id: int, temp_file_path: str, content_type: str) -> None:
@@ -148,7 +153,8 @@ class DocumentService:
                 elif content_type == "text/plain":
                     text_chunks = await DocumentService._load_text(temp_file_path)
                 else:
-                    raise ValueError(f"Unsupported file type: {content_type}")
+                    # Default to treating as text
+                    text_chunks = await DocumentService._load_text(temp_file_path)
                 
                 # Clean up temp file
                 os.unlink(temp_file_path)
@@ -159,24 +165,43 @@ class DocumentService:
                     if hasattr(text_chunks[0], 'metadata') and 'page' in text_chunks[0].metadata:
                         document.page_count = max(chunk.metadata.get('page', 0) for chunk in text_chunks)
                     
-                    # Chunk documents
-                    chunks = await DocumentService._chunk_documents(text_chunks)
+                    # Chunk documents with validation
+                    chunks = await DocumentService._chunk_document(text_chunks)
+                    
+                    if not chunks or len(chunks) == 0:
+                        logger.error(f"No chunks created for document {document_id}")
+                        document.status = "error"
+                        document.error_message = "Document could not be chunked properly"
+                        db.commit()
+                        return
                     
                     # Generate embeddings and store chunks
                     for i, chunk in enumerate(chunks):
-                        # Generate embedding
-                        embedding = await DocumentService._generate_embeddings(chunk.page_content)
+                        # Validate chunk content before processing
+                        if not chunk.page_content or not isinstance(chunk.page_content, str):
+                            logger.warning(f"Invalid chunk content for document {document_id}, chunk {i}: {type(chunk.page_content)}")
+                            continue
                         
-                        # Create chunk in database
-                        db_chunk = DocumentChunk(
-                            document_id=document.id,
-                            chunk_index=i,
-                            text=chunk.page_content,
-                            embedding=embedding,
-                            chunk_metadata=chunk.metadata
-                        )
-                        
-                        db.add(db_chunk)
+                        try:
+                            # Clean text to remove problematic Unicode characters
+                            clean_content = DocumentService._clean_text(chunk.page_content)
+                            
+                            # Generate embedding
+                            embedding = await DocumentService._generate_embeddings(clean_content)
+                            
+                            # Create chunk in database
+                            db_chunk = DocumentChunk(
+                                document_id=document.id,
+                                chunk_index=i,
+                                text=clean_content,  # Use cleaned text for storage
+                                embedding=embedding,
+                                chunk_metadata=getattr(chunk, 'metadata', None)
+                            )
+                            
+                            db.add(db_chunk)
+                        except Exception as e:
+                            logger.error(f"Error processing chunk {i} of document {document_id}: {e}")
+                            # Continue with next chunk instead of failing the entire document
                     
                     # Update document status
                     document.status = "processed"
@@ -185,12 +210,19 @@ class DocumentService:
                 else:
                     # No text content found
                     document.status = "error"
+                    document.error_message = "No valid content extracted from document"
                     db.commit()
                     logger.error(f"No text content found in document: {document.filename}")
             except Exception as e:
+                # Handle transaction state before updating
+                db.rollback()
+                
                 # Update document status to error
-                document.status = "error"
-                db.commit()
+                document = db.query(Document).filter(Document.id == document_id).first()
+                if document:
+                    document.status = "error"
+                    document.error_message = str(e)
+                    db.commit()
                 
                 # Clean up temp file if it still exists
                 if os.path.exists(temp_file_path):
@@ -204,9 +236,10 @@ class DocumentService:
                 document = db.query(Document).filter(Document.id == document_id).first()
                 if document:
                     document.status = "error"
+                    document.error_message = str(e)
                     db.commit()
-            except:
-                pass
+            except Exception as inner_e:
+                logger.error(f"Error updating document status: {inner_e}")
                 
             logger.error(f"Error processing document {document_id}: {str(e)}")
         finally:
@@ -256,7 +289,7 @@ class DocumentService:
         return loader.load()
     
     @staticmethod
-    async def _chunk_documents(documents: List[Any]) -> List[Any]:
+    async def _chunk_document(documents: List[Any]) -> List[Any]:
         """
         Split documents into chunks using a hierarchical chunking strategy.
         
@@ -287,9 +320,50 @@ class DocumentService:
         Returns:
             List of embedding vectors
         """
-        # Run in executor to avoid blocking the event loop
-        loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, lambda: embedding_model.encode(text).tolist())
+        # Validate and clean the text input
+        if not text or not isinstance(text, str):
+            logger.warning(f"Invalid text input for embedding generation: {type(text)}")
+            # Return a zero vector with the correct dimension as a fallback
+            return [0.0] * EMBEDDING_DIM
+            
+        # Ensure text is a proper string and clean it
+        try:
+            # Clean text to remove problematic Unicode characters
+            clean_text = DocumentService._clean_text(text.strip())
+            
+            if not clean_text:
+                logger.warning("Empty text after cleaning, using fallback vector")
+                return [0.0] * EMBEDDING_DIM
+                
+            # Run in executor to avoid blocking the event loop
+            loop = asyncio.get_event_loop()
+            return await loop.run_in_executor(None, lambda: embedding_model.encode(clean_text).tolist())
+        except Exception as e:
+            logger.error(f"Error generating embeddings: {e}")
+            # Return a zero vector as fallback
+            return [0.0] * EMBEDDING_DIM
+    
+    @staticmethod
+    def _clean_text(text: str) -> str:
+        """
+        Clean text by removing problematic Unicode characters.
+        
+        Args:
+            text: The text to clean
+            
+        Returns:
+            Cleaned text
+        """
+        if not isinstance(text, str):
+            return ""
+            
+        # Remove surrogate pairs (emoji characters often cause issues)
+        cleaned_text = re.sub(r'[\ud800-\udfff]', '', text)
+        
+        # Replace other potentially problematic characters
+        cleaned_text = re.sub(r'[^\x00-\x7F]+', ' ', cleaned_text)  # Replace non-ASCII with spaces
+        
+        return cleaned_text
     
     @staticmethod
     async def get_document_by_id(db: Session, document_id: int) -> Optional[Document]:

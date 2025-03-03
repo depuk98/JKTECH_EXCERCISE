@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Sign Up - FastAPI User Management{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="form-container mt-5">
+            <h2 class="text-center mb-4">Sign Up</h2>
+            <div class="alert alert-danger d-none" id="error-message"></div>
+            <div class="alert alert-success d-none" id="success-message">
+                Registration successful! You can now <a href="/login">login</a>.
+            </div>
+            <form id="signup-form">
+                <div class="mb-3">
+                    <label for="username" class="form-label">Username</label>
+                    <input type="text" class="form-control" id="username" name="username" required>
+                    <div class="form-text">Username must be alphanumeric.</div>
+                </div>
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="email" name="email" required>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" class="form-control" id="password" name="password" required>
+                    <div class="form-text">Password must be at least 8 characters long.</div>
+                </div>
+                <div class="mb-3">
+                    <label for="confirm-password" class="form-label">Confirm Password</label>
+                    <input type="password" class="form-control" id="confirm-password" name="confirm-password" required>
+                </div>
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary">Sign Up</button>
+                </div>
+            </form>
+            <div class="text-center mt-3">
+                <p>Already have an account? <a href="/login">Login</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.getElementById('signup-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const username = document.getElementById('username').value;
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirm-password').value;
+        const errorMessage = document.getElementById('error-message');
+        const successMessage = document.getElementById('success-message');
+        
+        // Reset messages
+        errorMessage.classList.add('d-none');
+        successMessage.classList.add('d-none');
+        
+        // Validate form
+        if (password !== confirmPassword) {
+            errorMessage.textContent = 'Passwords do not match.';
+            errorMessage.classList.remove('d-none');
+            return;
+        }
+        
+        if (password.length < 8) {
+            errorMessage.textContent = 'Password must be at least 8 characters long.';
+            errorMessage.classList.remove('d-none');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    username: username,
+                    email: email,
+                    password: password,
+                }),
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                // Show success message
+                document.getElementById('signup-form').reset();
+                successMessage.classList.remove('d-none');
+            } else {
+                // Show error message
+                errorMessage.textContent = data.detail || 'Registration failed. Please try again.';
+                errorMessage.classList.remove('d-none');
+            }
+        } catch (error) {
+            console.error('Registration error:', error);
+            errorMessage.textContent = 'An error occurred. Please try again.';
+            errorMessage.classList.remove('d-none');
+        }
+    });
+</script>
+{% endblock %} 
