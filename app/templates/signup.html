@@ -1,105 +1,262 @@
 {% extends "base.html" %}
 
-{% block title %}Sign Up - FastAPI User Management{% endblock %}
+{% block title %}Sign Up - Document Management{% endblock %}
+
+{% block custom_styles %}
+.signup-container {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 2rem;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.signup-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.signup-header .app-icon {
+    font-size: 4rem;
+    color: #0d6efd;
+    margin-bottom: 1rem;
+}
+
+.signup-footer {
+    text-align: center;
+    margin-top: 2rem;
+    color: #6c757d;
+}
+
+.signup-form {
+    margin-bottom: 1.5rem;
+}
+
+.form-floating {
+    margin-bottom: 1rem;
+}
+
+.link-login {
+    color: #0d6efd;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.link-login:hover {
+    text-decoration: underline;
+}
+
+.password-requirements {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-top: 0.5rem;
+}
+
+.password-requirement {
+    position: relative;
+    padding-left: 1.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.password-requirement i {
+    position: absolute;
+    left: 0;
+    top: 2px;
+}
+
+.requirement-met {
+    color: #198754;
+}
+
+.requirement-unmet {
+    color: #dc3545;
+}
+{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="form-container mt-5">
-            <h2 class="text-center mb-4">Sign Up</h2>
-            <div class="alert alert-danger d-none" id="error-message"></div>
-            <div class="alert alert-success d-none" id="success-message">
-                Registration successful! You can now <a href="/login">login</a>.
-            </div>
-            <form id="signup-form">
-                <div class="mb-3">
-                    <label for="username" class="form-label">Username</label>
-                    <input type="text" class="form-control" id="username" name="username" required>
-                    <div class="form-text">Username must be alphanumeric.</div>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="signup-container">
+                <div class="signup-header">
+                    <div class="app-icon">
+                        <i class="bi bi-person-plus"></i>
+                    </div>
+                    <h2>Create Your Account</h2>
+                    <p class="text-muted">Start managing your documents today</p>
                 </div>
-                <div class="mb-3">
-                    <label for="email" class="form-label">Email</label>
-                    <input type="email" class="form-control" id="email" name="email" required>
+                
+                <div class="alert alert-danger d-none" id="error-message"></div>
+                
+                <form id="signup-form" class="signup-form">
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control" id="username" name="username" placeholder="Username" required>
+                        <label for="username">Username</label>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <input type="email" class="form-control" id="email" name="email" placeholder="Email address" required>
+                        <label for="email">Email address</label>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
+                        <label for="password">Password</label>
+                        
+                        <div id="password-requirements" class="password-requirements mt-2">
+                            <div class="password-requirement" id="req-length">
+                                <i class="bi bi-x-circle"></i> At least 8 characters
+                            </div>
+                            <div class="password-requirement" id="req-lowercase">
+                                <i class="bi bi-x-circle"></i> Contains lowercase letter
+                            </div>
+                            <div class="password-requirement" id="req-uppercase">
+                                <i class="bi bi-x-circle"></i> Contains uppercase letter
+                            </div>
+                            <div class="password-requirement" id="req-number">
+                                <i class="bi bi-x-circle"></i> Contains number
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <input type="password" class="form-control" id="confirm-password" name="confirm-password" placeholder="Confirm password" required>
+                        <label for="confirm-password">Confirm password</label>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" id="submit-button" class="btn btn-primary btn-lg">
+                            <i class="bi bi-person-plus me-2"></i>Create Account
+                        </button>
+                    </div>
+                </form>
+                
+                <div class="signup-footer">
+                    <p>Already have an account? <a href="/login" class="link-login">Sign in</a></p>
                 </div>
-                <div class="mb-3">
-                    <label for="password" class="form-label">Password</label>
-                    <input type="password" class="form-control" id="password" name="password" required>
-                    <div class="form-text">Password must be at least 8 characters long.</div>
-                </div>
-                <div class="mb-3">
-                    <label for="confirm-password" class="form-label">Confirm Password</label>
-                    <input type="password" class="form-control" id="confirm-password" name="confirm-password" required>
-                </div>
-                <div class="d-grid gap-2">
-                    <button type="submit" class="btn btn-primary">Sign Up</button>
-                </div>
-            </form>
-            <div class="text-center mt-3">
-                <p>Already have an account? <a href="/login">Login</a></p>
             </div>
         </div>
     </div>
 </div>
 {% endblock %}
 
-{% block extra_js %}
+{% block scripts %}
 <script>
-    document.getElementById('signup-form').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        const username = document.getElementById('username').value;
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        const confirmPassword = document.getElementById('confirm-password').value;
+    document.addEventListener('DOMContentLoaded', function() {
+        const signupForm = document.getElementById('signup-form');
+        const usernameInput = document.getElementById('username');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const confirmPasswordInput = document.getElementById('confirm-password');
         const errorMessage = document.getElementById('error-message');
-        const successMessage = document.getElementById('success-message');
+        const submitButton = document.getElementById('submit-button');
         
-        // Reset messages
-        errorMessage.classList.add('d-none');
-        successMessage.classList.add('d-none');
+        // Password requirement elements
+        const reqLength = document.getElementById('req-length');
+        const reqLowercase = document.getElementById('req-lowercase');
+        const reqUppercase = document.getElementById('req-uppercase');
+        const reqNumber = document.getElementById('req-number');
         
-        // Validate form
-        if (password !== confirmPassword) {
-            errorMessage.textContent = 'Passwords do not match.';
-            errorMessage.classList.remove('d-none');
-            return;
-        }
-        
-        if (password.length < 8) {
-            errorMessage.textContent = 'Password must be at least 8 characters long.';
-            errorMessage.classList.remove('d-none');
-            return;
-        }
-        
-        try {
-            const response = await fetch('/api/auth/register', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    username: username,
-                    email: email,
-                    password: password,
-                }),
-            });
+        // Validate password as user types
+        passwordInput.addEventListener('input', function() {
+            const password = passwordInput.value;
             
-            const data = await response.json();
+            // Check requirements
+            const hasLength = password.length >= 8;
+            const hasLowercase = /[a-z]/.test(password);
+            const hasUppercase = /[A-Z]/.test(password);
+            const hasNumber = /[0-9]/.test(password);
             
-            if (response.ok) {
-                // Show success message
-                document.getElementById('signup-form').reset();
-                successMessage.classList.remove('d-none');
+            // Update UI for requirements
+            updateRequirement(reqLength, hasLength);
+            updateRequirement(reqLowercase, hasLowercase);
+            updateRequirement(reqUppercase, hasUppercase);
+            updateRequirement(reqNumber, hasNumber);
+            
+            // Check if all requirements are met
+            const allRequirementsMet = hasLength && hasLowercase && hasUppercase && hasNumber;
+            
+            // Update submit button state
+            submitButton.disabled = !allRequirementsMet;
+        });
+        
+        // Helper function to update requirement UI
+        function updateRequirement(element, isMet) {
+            if (isMet) {
+                element.classList.add('requirement-met');
+                element.classList.remove('requirement-unmet');
+                element.querySelector('i').className = 'bi bi-check-circle';
             } else {
-                // Show error message
-                errorMessage.textContent = data.detail || 'Registration failed. Please try again.';
-                errorMessage.classList.remove('d-none');
+                element.classList.add('requirement-unmet');
+                element.classList.remove('requirement-met');
+                element.querySelector('i').className = 'bi bi-x-circle';
             }
-        } catch (error) {
-            console.error('Registration error:', error);
-            errorMessage.textContent = 'An error occurred. Please try again.';
-            errorMessage.classList.remove('d-none');
         }
+        
+        // Form submission
+        signupForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = usernameInput.value;
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+            
+            // Clear previous error
+            errorMessage.classList.add('d-none');
+            
+            // Validate password match
+            if (password !== confirmPassword) {
+                errorMessage.textContent = 'Passwords do not match.';
+                errorMessage.classList.remove('d-none');
+                return;
+            }
+            
+            // Disable button and show loading state
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Creating account...';
+            
+            try {
+                const response = await fetch('/api/users/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        email: email,
+                        password: password,
+                    }),
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Show success message
+                    submitButton.classList.remove('btn-primary');
+                    submitButton.classList.add('btn-success');
+                    submitButton.innerHTML = '<i class="bi bi-check-circle me-2"></i>Success! Redirecting...';
+                    
+                    // Redirect to login page after a brief delay
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 1500);
+                } else {
+                    // Show error message
+                    errorMessage.textContent = data.detail || 'Registration failed. Please try again.';
+                    errorMessage.classList.remove('d-none');
+                    
+                    // Reset button
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = '<i class="bi bi-person-plus me-2"></i>Create Account';
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                errorMessage.textContent = 'An error occurred. Please try again.';
+                errorMessage.classList.remove('d-none');
+                
+                // Reset button
+                submitButton.disabled = false;
+                submitButton.innerHTML = '<i class="bi bi-person-plus me-2"></i>Create Account';
+            }
+        });
     });
 </script>
 {% endblock %} 

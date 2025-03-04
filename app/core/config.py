@@ -1,5 +1,5 @@
 import os
-from typing import List, Union, Dict, Any
+from typing import List, Union, Dict, Any, Optional
 from pydantic import AnyHttpUrl, validator
 from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
@@ -38,10 +38,19 @@ class Settings(BaseSettings):
     # Logging settings
     LOG_LEVEL: str = "INFO"
     
+    # LLM settings
+    OLLAMA_BASE_URL: str = "http://localhost:11434"
+    LLM_MODEL: str = "llama3.2"  # The Ollama model to use
+    
+    # Optional: OpenAI API key for backward compatibility with environments that have it set
+    OPENAI_API_KEY: Optional[str] = None
+    
     class Config:
         """Pydantic config."""
         case_sensitive = True
         env_file = ".env"
+        # Allow extra fields to avoid errors if environment has values not defined in the model
+        extra = "ignore"
 
 # Create settings instance
 settings = Settings() 

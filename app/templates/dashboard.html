@@ -1,91 +1,249 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - FastAPI User Management{% endblock %}
+{% block title %}Dashboard - Document Management{% endblock %}
+
+{% block custom_styles %}
+.border-dashed {
+    border-style: dashed !important;
+}
+
+#drop-area {
+    min-height: 150px;
+    cursor: pointer;
+    transition: all 0.3s;
+    background-color: #f8f9fa;
+}
+
+#drop-area:hover, #drop-area.highlight {
+    background-color: #e9ecef;
+    border-color: #6c757d !important;
+}
+
+.status-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status-badge.pending {
+    background-color: #f8f9fa;
+    color: #6c757d;
+}
+
+.status-badge.processing {
+    background-color: #cff4fc;
+    color: #055160;
+}
+
+.status-badge.processed {
+    background-color: #d1e7dd;
+    color: #0f5132;
+}
+
+.status-badge.error {
+    background-color: #f8d7da;
+    color: #842029;
+}
+
+/* Search result styling */
+.search-result {
+    border-left: 4px solid #0d6efd;
+    transition: all 0.2s;
+}
+
+.search-result:hover {
+    background-color: #f8f9fa;
+}
+
+.search-result-header {
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.search-result-score {
+    font-weight: bold;
+    color: #0d6efd;
+}
+
+.search-result-text {
+    margin-bottom: 0;
+}
+
+.highlight {
+    background-color: rgba(13, 110, 253, 0.1);
+    padding: 2px;
+    border-radius: 2px;
+}
+
+/* Smooth animation for search results */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.search-result {
+    animation: fadeIn 0.3s ease-out forwards;
+}
+
+.card-stat {
+    border-left: 4px solid #0d6efd;
+    transition: all 0.2s;
+}
+
+.card-stat:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.stat-icon {
+    font-size: 2rem;
+    color: #0d6efd;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h4 class="mb-0">User Dashboard</h4>
-                </div>
+<div class="page-heading">
+    <div class="container">
+        <h1><i class="bi bi-speedometer2 me-2"></i>Dashboard</h1>
+        <p class="lead">Manage your documents and search through your content</p>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card card-stat h-100">
                 <div class="card-body">
-                    <div class="alert alert-info" role="alert">
-                        Welcome to your dashboard! You are logged in.
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="stat-icon">
+                            <i class="bi bi-file-earmark-text"></i>
+                        </div>
+                        <div class="stat-value" id="stat-total-documents">0</div>
                     </div>
-                    <div id="user-info">
-                        <h5>Your Profile</h5>
-                        <div class="mb-3">
-                            <strong>Username:</strong> <span id="username-display">Loading...</span>
+                    <div class="stat-label">Total Documents</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card card-stat h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="stat-icon">
+                            <i class="bi bi-check-circle"></i>
                         </div>
-                        <div class="mb-3">
-                            <strong>Email:</strong> <span id="email-display">Loading...</span>
-                        </div>
-                        <div class="mb-3">
-                            <strong>Account Created:</strong> <span id="created-at-display">Loading...</span>
-                        </div>
+                        <div class="stat-value" id="stat-processed-documents">0</div>
                     </div>
+                    <div class="stat-label">Processed Documents</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card card-stat h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="stat-icon">
+                            <i class="bi bi-search"></i>
+                        </div>
+                        <div class="stat-value" id="stat-searches">0</div>
+                    </div>
+                    <div class="stat-label">Searches</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card card-stat h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="stat-icon">
+                            <i class="bi bi-question-circle"></i>
+                        </div>
+                        <div class="stat-value" id="stat-questions">0</div>
+                    </div>
+                    <div class="stat-label">Questions Answered</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Document Search Section -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0"><i class="bi bi-search me-2"></i>Search Documents</h5>
+            <a href="/qa" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-question-circle me-1"></i> Try Q&A
+            </a>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-12">
+                    <form id="search-form" class="mb-4">
+                        <div class="input-group">
+                            <input type="text" id="search-input" class="form-control" placeholder="Search your documents..." aria-label="Search query">
+                            <button class="btn btn-primary" type="submit" id="search-button">
+                                <i class="bi bi-search me-1"></i> Search
+                            </button>
+                        </div>
+                        <div class="form-text">Search using natural language. Try "climate change" or "quarterly revenue"</div>
+                    </form>
                 </div>
             </div>
             
-            <!-- Document Search Section -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h4 class="mb-0">Document Search</h4>
+            <div id="search-results-container" class="d-none">
+                <h5>Search Results</h5>
+                <div id="search-loading" class="text-center d-none my-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Searching documents...</p>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-12">
-                            <form id="search-form" class="mb-4">
-                                <div class="input-group">
-                                    <input type="text" id="search-input" class="form-control" placeholder="Search your documents..." aria-label="Search query">
-                                    <button class="btn btn-primary" type="submit" id="search-button">
-                                        <i class="bi bi-search"></i> Search
-                                    </button>
-                                </div>
-                                <div class="form-text">Search using natural language. Try "climate change" or "quarterly revenue"</div>
-                            </form>
-                        </div>
-                    </div>
-                    
-                    <div id="search-results-container" class="d-none">
-                        <h5>Search Results</h5>
-                        <div id="search-loading" class="text-center d-none my-4">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                            <p class="mt-2">Searching documents...</p>
-                        </div>
-                        <div id="search-results" class="list-group mb-3">
-                            <!-- Results will be added here by JavaScript -->
-                        </div>
-                        <div id="no-results" class="alert alert-info d-none">
-                            No results found. Try a different search term.
-                        </div>
-                    </div>
+                <div id="search-results" class="list-group mb-3">
+                    <!-- Results will be added here by JavaScript -->
+                </div>
+                <div id="no-results" class="alert alert-info d-none">
+                    No results found. Try a different search term.
                 </div>
             </div>
+        </div>
+    </div>
+    
+    <!-- Document Upload and Management Section -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0"><i class="bi bi-file-earmark-text me-2"></i>Document Management</h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-danger d-none" id="document-error"></div>
+            <div class="alert alert-success d-none" id="document-success">Document uploaded successfully!</div>
             
-            <!-- Document Upload Section -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h4 class="mb-0">Document Management</h4>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-danger d-none" id="document-error"></div>
-                    <div class="alert alert-success d-none" id="document-success">Document uploaded successfully!</div>
-                    
+            <div class="row">
+                <div class="col-lg-4">
                     <div class="upload-container mb-4">
-                        <h5>Upload Document</h5>
-                        <p class="text-muted">Upload documents for processing. Supported formats: PDF, DOCX, TXT</p>
+                        <h6 class="mb-3">Upload New Document</h6>
+                        <p class="text-muted small">Supported formats: PDF, DOCX, TXT</p>
                         
                         <div class="upload-area p-4 border border-dashed rounded mb-3 text-center" id="drop-area">
                             <div id="upload-content">
-                                <i class="bi bi-cloud-arrow-up fs-1"></i>
-                                <p>Drag and drop files here, or click to select</p>
+                                <i class="bi bi-cloud-arrow-up fs-1 mb-2"></i>
+                                <p class="mb-2">Drag and drop files here, or click to select</p>
                                 <input type="file" id="file-input" class="d-none" accept=".pdf,.docx,.doc,.txt">
-                                <button type="button" class="btn btn-primary" id="select-file-btn">Select Document</button>
+                                <button type="button" class="btn btn-primary" id="select-file-btn">
+                                    <i class="bi bi-file-earmark-plus me-1"></i> Select Document
+                                </button>
                             </div>
                             <div id="upload-progress" class="d-none">
                                 <div class="progress mb-3">
@@ -98,9 +256,11 @@
                             </div>
                         </div>
                     </div>
-                    
+                </div>
+                
+                <div class="col-lg-8">
                     <div class="documents-list-container">
-                        <h5>Your Documents</h5>
+                        <h6 class="mb-3">Your Documents</h6>
                         <div class="table-responsive">
                             <table class="table table-hover">
                                 <thead>
@@ -109,13 +269,17 @@
                                         <th>Type</th>
                                         <th>Status</th>
                                         <th>Uploaded</th>
-                                        <th>Size</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="document-list">
                                     <tr>
-                                        <td colspan="6" class="text-center">Loading documents...</td>
+                                        <td colspan="5" class="text-center">
+                                            <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                            Loading documents...
+                                        </td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -126,31 +290,54 @@
                     </div>
                 </div>
             </div>
-            
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="mb-0">Update Profile</h4>
+        </div>
+    </div>
+    
+    <!-- User Profile Section -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0"><i class="bi bi-person-circle me-2"></i>Your Profile</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div id="user-info" class="mb-4">
+                        <div class="mb-3">
+                            <strong>Username:</strong> <span id="username-display">Loading...</span>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Email:</strong> <span id="email-display">Loading...</span>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Account Created:</strong> <span id="created-at-display">Loading...</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
+                
+                <div class="col-md-6">
                     <div class="alert alert-danger d-none" id="error-message"></div>
                     <div class="alert alert-success d-none" id="success-message">
                         Profile updated successfully!
                     </div>
                     <form id="update-form">
                         <div class="mb-3">
-                            <label for="email" class="form-label">Email</label>
+                            <label for="email" class="form-label">Update Email</label>
                             <input type="email" class="form-control" id="email" name="email">
                         </div>
                         <div class="mb-3">
-                            <label for="password" class="form-label">New Password (leave blank to keep current)</label>
-                            <input type="password" class="form-control" id="password" name="password">
+                            <label for="password" class="form-label">New Password</label>
+                            <input type="password" class="form-control" id="password" name="password" 
+                                   placeholder="Leave blank to keep current">
                             <div class="form-text">Password must be at least 8 characters long.</div>
                         </div>
                         <div class="mb-3">
                             <label for="confirm-password" class="form-label">Confirm New Password</label>
-                            <input type="password" class="form-control" id="confirm-password" name="confirm-password">
+                            <input type="password" class="form-control" id="confirm-password" name="confirm-password" 
+                                   placeholder="Confirm new password">
                         </div>
-                        <button type="submit" class="btn btn-primary">Update Profile</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save me-1"></i> Update Profile
+                        </button>
                     </form>
                 </div>
             </div>
@@ -159,764 +346,7 @@
 </div>
 {% endblock %}
 
-{% block extra_css %}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-<style>
-    .border-dashed {
-        border-style: dashed !important;
-    }
-    
-    #drop-area {
-        min-height: 150px;
-        cursor: pointer;
-        transition: all 0.3s;
-        background-color: #f8f9fa;
-    }
-    
-    #drop-area:hover, #drop-area.highlight {
-        background-color: #e9ecef;
-        border-color: #6c757d !important;
-    }
-    
-    .status-badge {
-        padding: 0.25rem 0.5rem;
-        border-radius: 0.25rem;
-        font-size: 0.75rem;
-        font-weight: 600;
-    }
-    
-    .status-badge.pending {
-        background-color: #f8f9fa;
-        color: #6c757d;
-    }
-    
-    .status-badge.processing {
-        background-color: #cff4fc;
-        color: #055160;
-    }
-    
-    .status-badge.processed {
-        background-color: #d1e7dd;
-        color: #0f5132;
-    }
-    
-    .status-badge.error {
-        background-color: #f8d7da;
-        color: #842029;
-    }
-    
-    /* Search result styling */
-    .search-result {
-        border-left: 4px solid #0d6efd;
-        transition: all 0.2s;
-    }
-    
-    .search-result:hover {
-        background-color: #f8f9fa;
-    }
-    
-    .search-result-header {
-        font-size: 0.8rem;
-        color: #6c757d;
-    }
-    
-    .search-result-score {
-        font-weight: bold;
-        color: #0d6efd;
-    }
-    
-    .search-result-text {
-        margin-bottom: 0;
-    }
-    
-    .highlight {
-        background-color: rgba(13, 110, 253, 0.1);
-        padding: 2px;
-        border-radius: 2px;
-    }
-    
-    /* Smooth animation for search results */
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    
-    .search-result {
-        animation: fadeIn 0.3s ease-out forwards;
-    }
-</style>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Debug token information
-        const token = localStorage.getItem('token');
-        console.log('Token present:', !!token);
-        if (token) {
-            // Log token length and first/last few characters for debugging
-            console.log('Token length:', token.length);
-            console.log('Token preview:', token.substring(0, 10) + '...' + token.substring(token.length - 10));
-            
-            // Try to parse JWT token parts
-            try {
-                const parts = token.split('.');
-                if (parts.length === 3) {
-                    console.log('Valid JWT structure (3 parts)');
-                } else {
-                    console.error('Invalid JWT structure:', parts.length, 'parts instead of 3');
-                }
-            } catch (e) {
-                console.error('Error parsing token:', e);
-            }
-        } else {
-            console.error('No token found in localStorage');
-            // Optionally redirect to login
-            // window.location.href = '/login';
-        }
-        
-        // User profile display
-        fetchUserData();
-        setupProfileUpdate();
-        
-        // Document management
-        setupDocumentUpload();
-        loadUserDocuments();
-        
-        // Document search
-        setupDocumentSearch();
-    });
-    
-    // User Profile Functions
-    function fetchUserData() {
-        fetch('/api/users/me', {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-        })
-        .then(response => {
-            console.log('User data response status:', response.status);
-            if (!response.ok) {
-                if (response.status === 401) {
-                    console.error('Authentication error: Token invalid or expired');
-                    localStorage.removeItem('token');
-                    window.location.href = '/login';
-                    return;
-                }
-                throw new Error('Failed to fetch user data');
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data) {
-                console.log('User data received successfully');
-                document.getElementById('username-display').textContent = data.username;
-                document.getElementById('email-display').textContent = data.email;
-                document.getElementById('created-at-display').textContent = new Date(data.created_at).toLocaleDateString();
-                document.getElementById('email').value = data.email;
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching user data:', error);
-        });
-    }
-    
-    function setupProfileUpdate() {
-        const updateForm = document.getElementById('update-form');
-        const errorMessage = document.getElementById('error-message');
-        const successMessage = document.getElementById('success-message');
-        
-        updateForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirm-password').value;
-            
-            // Reset messages
-            errorMessage.classList.add('d-none');
-            successMessage.classList.add('d-none');
-            
-            // Validate form
-            if (password && password !== confirmPassword) {
-                errorMessage.textContent = 'Passwords do not match.';
-                errorMessage.classList.remove('d-none');
-                return;
-            }
-            
-            if (password && password.length < 8) {
-                errorMessage.textContent = 'Password must be at least 8 characters long.';
-                errorMessage.classList.remove('d-none');
-                return;
-            }
-            
-            // Prepare update data
-            const updateData = { email };
-            if (password) {
-                updateData.password = password;
-            }
-            
-            try {
-                const response = await fetch('/api/users/me', {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    },
-                    body: JSON.stringify(updateData)
-                });
-                
-                if (response.ok) {
-                    // Show success message
-                    successMessage.classList.remove('d-none');
-                    
-                    // Clear password fields
-                    document.getElementById('password').value = '';
-                    document.getElementById('confirm-password').value = '';
-                    
-                    // Refresh user data
-                    fetchUserData();
-                } else {
-                    const data = await response.json();
-                    errorMessage.textContent = data.detail || 'Update failed. Please try again.';
-                    errorMessage.classList.remove('d-none');
-                    
-                    // If unauthorized, redirect to login
-                    if (response.status === 401) {
-                        localStorage.removeItem('token');
-                        window.location.href = '/login';
-                    }
-                }
-            } catch (error) {
-                console.error('Update error:', error);
-                errorMessage.textContent = 'An error occurred. Please try again.';
-                errorMessage.classList.remove('d-none');
-            }
-        });
-    }
-    
-    // Document Management Functions
-    function setupDocumentUpload() {
-        const dropArea = document.getElementById('drop-area');
-        const fileInput = document.getElementById('file-input');
-        const selectFileBtn = document.getElementById('select-file-btn');
-        const uploadContent = document.getElementById('upload-content');
-        const uploadProgress = document.getElementById('upload-progress');
-        const progressBar = uploadProgress.querySelector('.progress-bar');
-        const uploadStatus = document.getElementById('upload-status');
-        
-        // Click the hidden file input when the select button is clicked
-        selectFileBtn.addEventListener('click', () => {
-            fileInput.click();
-        });
-        
-        // Click the drop area to select files
-        dropArea.addEventListener('click', (e) => {
-            if (e.target !== selectFileBtn && !selectFileBtn.contains(e.target)) {
-                fileInput.click();
-            }
-        });
-        
-        // Prevent default behavior for drag and drop events
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropArea.addEventListener(eventName, preventDefaults, false);
-        });
-        
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-        
-        // Highlight drop area when dragging over it
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropArea.addEventListener(eventName, () => {
-                dropArea.classList.add('highlight');
-            });
-        });
-        
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropArea.addEventListener(eventName, () => {
-                dropArea.classList.remove('highlight');
-            });
-        });
-        
-        // Handle dropped files
-        dropArea.addEventListener('drop', (e) => {
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                handleFileUpload(files[0]);
-            }
-        });
-        
-        // Handle selected files
-        fileInput.addEventListener('change', () => {
-            if (fileInput.files.length > 0) {
-                handleFileUpload(fileInput.files[0]);
-            }
-        });
-        
-        // Handle file upload
-        function handleFileUpload(file) {
-            // Check file type
-            const allowedTypes = [
-                'application/pdf', 
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                'application/msword',
-                'text/plain'
-            ];
-            
-            if (!allowedTypes.includes(file.type)) {
-                showDocumentError('Invalid file type. Please upload PDF, DOCX, or TXT files.');
-                return;
-            }
-            
-            // Show progress UI
-            uploadContent.classList.add('d-none');
-            uploadProgress.classList.remove('d-none');
-            hideDocumentMessages();
-            
-            // Create form data
-            const formData = new FormData();
-            formData.append('file', file);
-            
-            // Upload file
-            const xhr = new XMLHttpRequest();
-            xhr.open('POST', '/api/documents/upload');
-            
-            // Track upload progress
-            xhr.upload.addEventListener('progress', (e) => {
-                if (e.lengthComputable) {
-                    const percentComplete = Math.round((e.loaded / e.total) * 100);
-                    progressBar.style.width = percentComplete + '%';
-                    progressBar.textContent = percentComplete + '%';
-                    progressBar.setAttribute('aria-valuenow', percentComplete);
-                    
-                    if (percentComplete === 100) {
-                        uploadStatus.textContent = 'Processing document...';
-                    }
-                }
-            });
-            
-            // Handle completion
-            xhr.addEventListener('load', () => {
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    showDocumentSuccess('Document uploaded successfully!');
-                    resetUploadUI();
-                    loadUserDocuments();
-                } else {
-                    try {
-                        const response = JSON.parse(xhr.responseText);
-                        showDocumentError(response.detail || 'Failed to upload document.');
-                    } catch (e) {
-                        showDocumentError('Failed to upload document. Please try again.');
-                    }
-                    resetUploadUI();
-                }
-            });
-            
-            // Handle network errors
-            xhr.addEventListener('error', () => {
-                showDocumentError('Network error occurred. Please try again.');
-                resetUploadUI();
-            });
-            
-            // Set authorization header
-            xhr.setRequestHeader('Authorization', 'Bearer ' + localStorage.getItem('token'));
-            
-            // Send the form data
-            xhr.send(formData);
-        }
-        
-        function resetUploadUI() {
-            uploadContent.classList.remove('d-none');
-            uploadProgress.classList.add('d-none');
-            progressBar.style.width = '0%';
-            progressBar.textContent = '0%';
-            progressBar.setAttribute('aria-valuenow', 0);
-            uploadStatus.textContent = 'Uploading document...';
-            fileInput.value = '';
-        }
-    }
-    
-    // Document Search Functions
-    function setupDocumentSearch() {
-        const searchForm = document.getElementById('search-form');
-        const searchInput = document.getElementById('search-input');
-        const searchResultsContainer = document.getElementById('search-results-container');
-        const searchResults = document.getElementById('search-results');
-        const searchLoading = document.getElementById('search-loading');
-        const noResults = document.getElementById('no-results');
-        
-        searchForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const query = searchInput.value.trim();
-            if (!query) return;
-            
-            // Show loading state
-            searchResultsContainer.classList.remove('d-none');
-            searchLoading.classList.remove('d-none');
-            searchResults.innerHTML = '';
-            noResults.classList.add('d-none');
-            
-            try {
-                const response = await fetch(`/api/documents/search?query=${encodeURIComponent(query)}&limit=10`, {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    }
-                });
-                
-                if (!response.ok) {
-                    throw new Error('Search failed');
-                }
-                
-                const results = await response.json();
-                
-                // Hide loading
-                searchLoading.classList.add('d-none');
-                
-                if (results.length === 0) {
-                    noResults.classList.remove('d-none');
-                    return;
-                }
-                
-                // Create an object to store document information
-                const documentInfo = {};
-                
-                // First fetch document info for all document_ids in results
-                const uniqueDocIds = [...new Set(results.map(result => result.document_id))];
-                await Promise.all(uniqueDocIds.map(async docId => {
-                    try {
-                        const docResponse = await fetch(`/api/documents/${docId}`, {
-                            headers: {
-                                'Authorization': `Bearer ${localStorage.getItem('token')}`
-                            }
-                        });
-                        
-                        if (docResponse.ok) {
-                            const docData = await docResponse.json();
-                            documentInfo[docId] = {
-                                filename: docData.filename,
-                                content_type: docData.content_type
-                            };
-                        }
-                    } catch (error) {
-                        console.error(`Error fetching document info for id ${docId}:`, error);
-                    }
-                }));
-                
-                // Display results
-                results.forEach((result, index) => {
-                    // Add delay between animations
-                    const delay = index * 0.1;
-                    
-                    const resultItem = document.createElement('div');
-                    resultItem.className = 'list-group-item search-result';
-                    resultItem.style.animationDelay = `${delay}s`;
-                    
-                    // Get document info or use placeholder
-                    const docInfo = documentInfo[result.document_id] || { 
-                        filename: 'Document ' + result.document_id,
-                        content_type: 'Unknown'
-                    };
-                    
-                    // Format the similarity score as a percentage
-                    const scorePercent = Math.round(result.similarity_score * 100);
-                    
-                    // Get page number if available in metadata
-                    const pageInfo = result.metadata && result.metadata.page ? 
-                        `Page ${result.metadata.page}` : '';
-                    
-                    // Highlight query terms in text (simple approach)
-                    let highlightedText = result.text;
-                    query.split(' ').forEach(term => {
-                        if (term.length > 3) { // Only highlight meaningful terms
-                            const regex = new RegExp(`(${term})`, 'gi');
-                            highlightedText = highlightedText.replace(regex, '<span class="highlight">$1</span>');
-                        }
-                    });
-                    
-                    resultItem.innerHTML = `
-                        <div class="search-result-header d-flex justify-content-between align-items-center mb-1">
-                            <span>
-                                <i class="${getFileIcon(docInfo.content_type)}"></i> 
-                                <strong>${escapeHtml(docInfo.filename)}</strong>
-                                ${pageInfo ? `<span class="ms-2 text-muted">${pageInfo}</span>` : ''}
-                            </span>
-                            <span class="search-result-score">${scorePercent}% match</span>
-                        </div>
-                        <p class="search-result-text">${highlightedText}</p>
-                    `;
-                    
-                    searchResults.appendChild(resultItem);
-                });
-                
-            } catch (error) {
-                console.error('Search error:', error);
-                searchLoading.classList.add('d-none');
-                searchResults.innerHTML = `
-                    <div class="alert alert-danger">
-                        Error searching documents. Please try again.
-                    </div>
-                `;
-            }
-        });
-    }
-    
-    function getFileIcon(contentType) {
-        switch (contentType) {
-            case 'application/pdf':
-                return 'bi bi-file-earmark-pdf text-danger';
-            case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
-            case 'application/msword':
-                return 'bi bi-file-earmark-word text-primary';
-            case 'text/plain':
-                return 'bi bi-file-earmark-text text-secondary';
-            default:
-                return 'bi bi-file-earmark text-dark';
-        }
-    }
-    
-    function startDocumentStatusPolling() {
-        // Check if we have any processing documents
-        const hasProcessingDocuments = Array.from(document.querySelectorAll('.status-badge.processing')).length > 0;
-        
-        // If we have documents in processing state, poll more frequently
-        if (hasProcessingDocuments) {
-            // Poll every 3 seconds if there are documents being processed
-            setTimeout(loadUserDocuments, 3000);
-        } else {
-            // Regular polling (30 seconds) if no documents are being processed
-            setTimeout(loadUserDocuments, 30000);
-        }
-    }
-    
-    function loadUserDocuments(page = 1, limit = 10) {
-        fetch(`/api/documents?skip=${(page-1)*limit}&limit=${limit}`, {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Failed to fetch documents');
-            }
-            return response.json();
-        })
-        .then(data => {
-            const documentList = document.getElementById('document-list');
-            const noDocuments = document.getElementById('no-documents');
-            
-            if (data.documents.length === 0) {
-                documentList.innerHTML = '';
-                noDocuments.classList.remove('d-none');
-            } else {
-                noDocuments.classList.add('d-none');
-                documentList.innerHTML = data.documents.map(doc => `
-                    <tr${doc.status === 'processing' ? ' class="table-info"' : ''}>
-                        <td>${escapeHtml(doc.filename)}</td>
-                        <td>${getFileTypeLabel(doc.content_type)}</td>
-                        <td>${getStatusBadge(doc.status)}</td>
-                        <td>${formatDate(doc.created_at)}</td>
-                        <td>${formatFileSize(doc.file_size)}</td>
-                        <td>
-                            <button class="btn btn-sm btn-danger delete-document" 
-                                    data-document-id="${doc.id}" 
-                                    data-document-filename="${escapeHtml(doc.filename)}"
-                                    ${doc.status === 'processing' ? 'disabled' : ''}>
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `).join('');
-                
-                // Add event listeners to delete buttons
-                document.querySelectorAll('.delete-document').forEach(button => {
-                    button.addEventListener('click', function() {
-                        const documentId = this.getAttribute('data-document-id');
-                        const documentName = this.getAttribute('data-document-filename');
-                        confirmDeleteDocument(documentId, documentName);
-                    });
-                });
-                
-                // Add pagination if needed
-                if (data.total > limit) {
-                    const totalPages = Math.ceil(data.total / limit);
-                    addPagination(documentList, page, totalPages, limit);
-                }
-            }
-            
-            // Start polling for status updates
-            startDocumentStatusPolling();
-        })
-        .catch(error => {
-            console.error('Error fetching documents:', error);
-            document.getElementById('document-list').innerHTML = `
-                <tr>
-                    <td colspan="6" class="text-center text-danger">
-                        Failed to load documents. Please try again.
-                    </td>
-                </tr>
-            `;
-            
-            // Even in case of error, try again after 30 seconds
-            setTimeout(loadUserDocuments, 30000);
-        });
-    }
-    
-    function addPagination(container, currentPage, totalPages, limit) {
-        const paginationRow = document.createElement('tr');
-        paginationRow.innerHTML = `
-            <td colspan="6">
-                <nav aria-label="Document list pagination">
-                    <ul class="pagination justify-content-center mb-0">
-                        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-                            <a class="page-link" href="#" data-page="${currentPage - 1}">&laquo;</a>
-                        </li>
-                        ${generatePaginationItems(currentPage, totalPages)}
-                        <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-                            <a class="page-link" href="#" data-page="${currentPage + 1}">&raquo;</a>
-                        </li>
-                    </ul>
-                </nav>
-            </td>
-        `;
-        
-        container.appendChild(paginationRow);
-        
-        // Add event listeners to pagination links
-        paginationRow.querySelectorAll('.page-link').forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                const page = parseInt(e.target.dataset.page);
-                loadUserDocuments(page, limit);
-            });
-        });
-    }
-    
-    function generatePaginationItems(currentPage, totalPages) {
-        let items = '';
-        const maxVisiblePages = 5;
-        
-        let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-        let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-        
-        if (endPage - startPage + 1 < maxVisiblePages) {
-            startPage = Math.max(1, endPage - maxVisiblePages + 1);
-        }
-        
-        for (let i = startPage; i <= endPage; i++) {
-            items += `
-                <li class="page-item ${i === currentPage ? 'active' : ''}">
-                    <a class="page-link" href="#" data-page="${i}">${i}</a>
-                </li>
-            `;
-        }
-        
-        return items;
-    }
-    
-    // Utility functions
-    function getFileTypeLabel(contentType) {
-        switch (contentType) {
-            case 'application/pdf':
-                return '<span class="badge bg-danger">PDF</span>';
-            case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
-            case 'application/msword':
-                return '<span class="badge bg-primary">DOCX</span>';
-            case 'text/plain':
-                return '<span class="badge bg-secondary">TXT</span>';
-            default:
-                return '<span class="badge bg-light text-dark">Unknown</span>';
-        }
-    }
-    
-    function getStatusBadge(status) {
-        switch (status) {
-            case 'pending':
-                return '<span class="status-badge pending">Pending</span>';
-            case 'processing':
-                return '<span class="status-badge processing">Processing</span>';
-            case 'processed':
-                return '<span class="status-badge processed">Processed</span>';
-            case 'error':
-                return '<span class="status-badge error">Error</span>';
-            default:
-                return '<span class="status-badge pending">Unknown</span>';
-        }
-    }
-    
-    function formatDate(dateString) {
-        return new Date(dateString).toLocaleDateString();
-    }
-    
-    function formatFileSize(bytes) {
-        if (bytes === 0) return '0 Bytes';
-        
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    }
-    
-    function escapeHtml(unsafe) {
-        return unsafe
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
-    }
-    
-    function showDocumentError(message) {
-        const errorElement = document.getElementById('document-error');
-        errorElement.textContent = message;
-        errorElement.classList.remove('d-none');
-        document.getElementById('document-success').classList.add('d-none');
-    }
-    
-    function showDocumentSuccess(message) {
-        const successElement = document.getElementById('document-success');
-        successElement.textContent = message;
-        successElement.classList.remove('d-none');
-        document.getElementById('document-error').classList.add('d-none');
-    }
-    
-    function hideDocumentMessages() {
-        document.getElementById('document-error').classList.add('d-none');
-        document.getElementById('document-success').classList.add('d-none');
-    }
-    
-    function confirmDeleteDocument(documentId, documentName) {
-        // Show a confirmation dialog
-        if (confirm(`Are you sure you want to delete "${documentName}"? This action cannot be undone.`)) {
-            deleteDocument(documentId);
-        }
-    }
-    
-    function deleteDocument(documentId) {
-        fetch(`/api/documents/${documentId}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-        })
-        .then(response => {
-            if (response.status === 204) {
-                // Success - reload the document list
-                showDocumentSuccess('Document deleted successfully');
-                loadUserDocuments();
-            } else {
-                return response.json().then(data => {
-                    throw new Error(data.detail || 'Failed to delete document');
-                });
-            }
-        })
-        .catch(error => {
-            console.error('Error deleting document:', error);
-            showDocumentError(error.message || 'Failed to delete document. Please try again.');
-        });
-    }
-</script>
+{% block scripts %}
+<script src="{{ url_for('static', path='/js/apiUtils.js') }}"></script>
+<script src="{{ url_for('static', path='/js/dashboard.js') }}"></script>
 {% endblock %} 

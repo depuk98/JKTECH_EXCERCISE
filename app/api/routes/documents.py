@@ -72,11 +72,16 @@ async def list_documents(
             limit=limit
         )
         
-        # The documents variable is now directly a list of Document objects
-        return {
+        # Log the document count for debugging
+        print(f"Retrieved {len(documents)} documents for user {current_user.id} (total: {total})")
+        
+        # Explicitly create a DocumentList response
+        response = {
             "total": total,
             "documents": documents
         }
+        
+        return response
     except Exception as e:
         # Log the specific error for debugging
         import logging

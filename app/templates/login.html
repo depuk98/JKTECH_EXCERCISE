@@ -1,35 +1,94 @@
 {% extends "base.html" %}
 
-{% block title %}Login - FastAPI User Management{% endblock %}
+{% block title %}Login - Document Management{% endblock %}
+
+{% block custom_styles %}
+.login-container {
+    max-width: 450px;
+    margin: 0 auto;
+    padding: 2rem;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.login-header .app-icon {
+    font-size: 4rem;
+    color: #0d6efd;
+    margin-bottom: 1rem;
+}
+
+.login-footer {
+    text-align: center;
+    margin-top: 2rem;
+    color: #6c757d;
+}
+
+.login-form {
+    margin-bottom: 1.5rem;
+}
+
+.form-floating {
+    margin-bottom: 1rem;
+}
+
+.link-signup {
+    color: #0d6efd;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.link-signup:hover {
+    text-decoration: underline;
+}
+{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="form-container mt-5">
-            <h2 class="text-center mb-4">Login</h2>
-            <div class="alert alert-danger d-none" id="error-message"></div>
-            <form id="login-form">
-                <div class="mb-3">
-                    <label for="username" class="form-label">Username</label>
-                    <input type="text" class="form-control" id="username" name="username" required>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="login-container">
+                <div class="login-header">
+                    <div class="app-icon">
+                        <i class="bi bi-file-earmark-text"></i>
+                    </div>
+                    <h2>Welcome Back</h2>
+                    <p class="text-muted">Sign in to access your documents</p>
                 </div>
-                <div class="mb-3">
-                    <label for="password" class="form-label">Password</label>
-                    <input type="password" class="form-control" id="password" name="password" required>
+                
+                <div class="alert alert-danger d-none" id="error-message"></div>
+                
+                <form id="login-form" class="login-form">
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control" id="username" name="username" placeholder="Username" required>
+                        <label for="username">Username</label>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
+                        <label for="password">Password</label>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+                        </button>
+                    </div>
+                </form>
+                
+                <div class="login-footer">
+                    <p>Don't have an account? <a href="/signup" class="link-signup">Create an account</a></p>
                 </div>
-                <div class="d-grid gap-2">
-                    <button type="submit" class="btn btn-primary">Login</button>
-                </div>
-            </form>
-            <div class="text-center mt-3">
-                <p>Don't have an account? <a href="/signup">Sign up</a></p>
             </div>
         </div>
     </div>
 </div>
 {% endblock %}
 
-{% block extra_js %}
+{% block scripts %}
 <script>
     document.getElementById('login-form').addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -37,8 +96,17 @@
         const username = document.getElementById('username').value;
         const password = document.getElementById('password').value;
         const errorMessage = document.getElementById('error-message');
+        const submitButton = this.querySelector('button[type="submit"]');
+        
+        // Clear previous error
+        errorMessage.classList.add('d-none');
+        
+        // Disable button and show loading state
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Signing in...';
         
         try {
+            console.log('Attempting login for user:', username);
             const response = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: {
@@ -51,22 +119,41 @@
             });
             
             const data = await response.json();
+            console.log('Login response status:', response.status);
             
             if (response.ok) {
                 // Store token in localStorage
+                console.log('Login successful, token received');
                 localStorage.setItem('token', data.access_token);
+                console.log('Token saved to localStorage');
                 
-                // Redirect to dashboard
-                window.location.href = '/dashboard';
+                // Show success message before redirect
+                submitButton.classList.remove('btn-primary');
+                submitButton.classList.add('btn-success');
+                submitButton.innerHTML = '<i class="bi bi-check-circle me-2"></i>Success! Redirecting...';
+                
+                // Redirect to dashboard after a brief delay
+                setTimeout(() => {
+                    window.location.href = '/dashboard';
+                }, 1000);
             } else {
                 // Show error message
+                console.error('Login failed:', data);
                 errorMessage.textContent = data.detail || 'Login failed. Please check your credentials.';
                 errorMessage.classList.remove('d-none');
+                
+                // Reset button
+                submitButton.disabled = false;
+                submitButton.innerHTML = '<i class="bi bi-box-arrow-in-right me-2"></i>Sign In';
             }
         } catch (error) {
             console.error('Login error:', error);
             errorMessage.textContent = 'An error occurred. Please try again.';
             errorMessage.classList.remove('d-none');
+            
+            // Reset button
+            submitButton.disabled = false;
+            submitButton.innerHTML = '<i class="bi bi-box-arrow-in-right me-2"></i>Sign In';
         }
     });
 </script>

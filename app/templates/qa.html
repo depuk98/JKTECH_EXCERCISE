@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Document Q&A{% endblock %}
+
+{% block custom_styles %}
+/* Custom styles for Q&A */
+.citations {
+    margin-top: 15px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+}
+.citation-item {
+    padding: 5px 0;
+    border-bottom: 1px solid #e9ecef;
+}
+.citation-item:last-child {
+    border-bottom: none;
+}
+.spinner-border {
+    display: none;
+    margin-right: 10px;
+}
+.processing {
+    display: inline-block;
+}
+.answer-box {
+    min-height: 100px;
+    padding: 15px;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    margin-top: 20px;
+    background-color: #f8f9fa;
+}
+/* Citation reference styling */
+.citation-ref {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #0d6efd;
+    font-weight: bold;
+    cursor: pointer;
+    margin: 0 2px;
+    vertical-align: super;
+    font-size: 0.8em;
+}
+.citation-ref:hover {
+    text-decoration: underline;
+    color: #0a58ca;
+}
+/* Document selection styles */
+.document-selector {
+    margin-bottom: 20px;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    padding: 15px;
+    background-color: #f8f9fa;
+}
+.document-options {
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 10px;
+}
+.form-check {
+    margin-bottom: 8px;
+}
+/* Processing time badge */
+.processing-time {
+    font-size: 0.8em;
+    margin-left: 10px;
+}
+{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+    <div class="container">
+        <h1><i class="bi bi-question-circle me-2"></i>Document Q&A</h1>
+        <p class="lead">Ask questions about your documents using AI-powered document understanding.</p>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="bi bi-file-earmark-text me-2"></i>Select Documents</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" value="" id="select-all-documents" checked>
+                        <label class="form-check-label fw-bold" for="select-all-documents">
+                            All Documents
+                        </label>
+                        <small class="d-block text-muted">Search across all your documents</small>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div id="document-selector">
+                        <div class="text-center py-3" id="loading-documents">
+                            <div class="spinner-border spinner-border-sm" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <span>Loading documents...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="bi bi-lightbulb me-2"></i>Tips</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="small">
+                        <li>Be specific with your questions for better results</li>
+                        <li>For complex topics, select only relevant documents</li>
+                        <li>Check the source documents in citations for verification</li>
+                        <li>Results are based on Ollama's interpretation of your documents</li>
+                        <li>Running locally - no data leaves your system</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="bi bi-chat-dots me-2"></i>Ask a Question</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <textarea class="form-control" id="question-input" rows="3" 
+                                  placeholder="What would you like to know about your documents?"></textarea>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="button" class="btn btn-primary" id="submit-question">
+                            <span class="spinner-border spinner-border-sm" id="loading-spinner" role="status" aria-hidden="true"></span>
+                            <i class="bi bi-send me-1"></i> Ask Question
+                        </button>
+                    </div>
+                    
+                    <div class="alert alert-danger mt-3 d-none" id="error-container"></div>
+                </div>
+            </div>
+            
+            <div class="card d-none" id="answer-container">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0"><i class="bi bi-reply me-2"></i>Answer</h5>
+                    <div>
+                        <span class="badge bg-info d-none" id="provider-badge"></span>
+                        <span class="badge bg-secondary" id="processing-time"></span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="answer-content" class="answer-box"></div>
+                    
+                    <div id="citations-container" class="citations mt-3 d-none">
+                        <h6 class="fw-bold"><i class="bi bi-book me-2"></i>Sources:</h6>
+                        <div id="citations-list"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/qa.js?v=1.2"></script>
+{% endblock %} 

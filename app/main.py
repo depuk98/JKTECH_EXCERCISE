@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends, HTTPException, status
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
@@ -63,6 +63,17 @@ async def signup_page(request: Request):
 async def dashboard_page(request: Request):
     """Render the dashboard page."""
     return templates.TemplateResponse("dashboard.html", {"request": request})
+
+@app.get("/qa", include_in_schema=False)
+async def qa_page(request: Request):
+    """Render the Q&A page."""
+    return templates.TemplateResponse("qa.html", {"request": request})
+
+# Explicit logout route
+@app.get("/logout", include_in_schema=False)
+async def logout():
+    """Handle logout by redirecting to landing page."""
+    return RedirectResponse(url="/landing")
 
 if __name__ == "__main__":
     import uvicorn

@@ -1,6 +1,6 @@
 # FastAPI Document Processing System
 
-A FastAPI-based document processing system with vector embeddings for semantic search and document management.
+A FastAPI-based document processing system with vector embeddings for semantic search, document management, and question answering capabilities.
 
 ## Features
 
@@ -10,6 +10,8 @@ A FastAPI-based document processing system with vector embeddings for semantic s
 - Vector embeddings generation using Sentence Transformers
 - Vector storage with PostgreSQL + pgvector
 - Semantic search across document contents
+- **Document-based Question Answering (Q&A)**
+- **Integration with OpenAI and Ollama LLMs**
 - Modern UI with Bootstrap
 - Background processing of documents
 - Comprehensive test coverage
@@ -21,6 +23,7 @@ A FastAPI-based document processing system with vector embeddings for semantic s
 1. Python 3.9+
 2. PostgreSQL with pgvector extension
 3. Virtual environment (recommended)
+4. [Optional] Ollama for local LLM support
 
 ### Installation
 
@@ -55,6 +58,9 @@ A FastAPI-based document processing system with vector embeddings for semantic s
    SECRET_KEY=your_secret_key
    ALGORITHM=HS256
    ACCESS_TOKEN_EXPIRE_MINUTES=1440
+   OPENAI_API_KEY=your_openai_api_key  # Optional, for OpenAI integration
+   OLLAMA_BASE_URL=http://localhost:11434  # Optional, for Ollama integration
+   LLM_MODEL=llama3.1  # Options: gpt-4, gpt-3.5-turbo, llama3.1
    ```
 
 6. Run migrations:
@@ -90,6 +96,17 @@ A FastAPI-based document processing system with vector embeddings for semantic s
 1. Use the search bar to perform semantic searches across your documents
 2. Results are ranked by relevance based on vector similarity
 
+### Question Answering (Q&A)
+
+1. Navigate to the Q&A page
+2. Select the documents you want to query or choose "All Documents"
+3. Enter your question in the input field
+4. The system will:
+   - Retrieve relevant document chunks using vector similarity
+   - Generate an answer based on the retrieved context
+   - Provide citations to source documents
+5. View the answer with references to the original documents
+
 ## Architecture
 
 The application follows a clean, modular architecture:
@@ -106,13 +123,20 @@ The application follows a clean, modular architecture:
 - **documents**: Document metadata
 - **document_chunks**: Document content with vector embeddings
 
-## Vector Search
+## Vector Search and RAG
 
-Document search uses the pgvector extension to perform efficient similarity searches:
+The application uses a Retrieval-Augmented Generation (RAG) approach:
 
-1. The query text is converted to an embedding vector
-2. A vector similarity search is performed (using cosine similarity)
-3. Results are returned sorted by similarity score
+1. Document search uses the pgvector extension to perform efficient similarity searches:
+   - The query text is converted to an embedding vector
+   - A vector similarity search is performed (using cosine similarity)
+   - Results are returned sorted by similarity score
+
+2. For Q&A, the system:
+   - Retrieves relevant document chunks using vector search
+   - Formats the chunks with citations as context
+   - Passes the context to an LLM (OpenAI or Ollama)
+   - Returns the generated answer with citations
 
 ## Testing
 
@@ -120,6 +144,12 @@ Run the test suite with:
 
 ```bash
 pytest
+```
+
+For coverage reports:
+
+```bash
+pytest --cov=app
 ```
 
 ## License
