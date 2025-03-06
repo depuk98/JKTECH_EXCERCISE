@@ -24,7 +24,6 @@ JKT is a robust backend service with an API for user management, document proces
 - Document upload and processing
 - Hierarchical text chunking with sliding window 
 - Modern UI with Bootstrap
-
 - RESTful API with OpenAPI documentation
 - Asynchronous operations for improved performance
 - Comprehensive test coverage
