@@ -22,6 +22,9 @@ JKT is a robust backend service with an API for user management, document proces
 
 - User authentication and management
 - Document upload and processing
+- Hierarchical text chunking with sliding window 
+- Modern UI with Bootstrap
+
 - RESTful API with OpenAPI documentation
 - Asynchronous operations for improved performance
 - Comprehensive test coverage
@@ -63,7 +66,7 @@ The application will be available at http://localhost:8000
 ### Prerequisites
 
 - Python 3.10+ (recommended 3.11+)
-- PostgreSQL (for production) or SQLite (for development)
+- PostgreSQL 
 - Git
 
 ### Detailed Installation Steps
@@ -122,7 +125,10 @@ DATABASE_URL=sqlite:///./app.db
 FRONTEND_HOST=http://localhost:3000
 BACKEND_CORS_ORIGINS=["http://localhost:3000","http://localhost:8000"]
 ```
-
+Set up the pgvector extension for PostgreSQL:
+   ```bash
+   psql -U your_username -d your_database -c "CREATE EXTENSION IF NOT EXISTS vector;"
+   ```
 ## Running the Application
 
 1. **Run database migrations**
