@@ -19,7 +19,6 @@ This guide provides comprehensive information about testing the JKT application,
 8. [Testing Async Code](#testing-async-code)
 9. [Automated Testing](#automated-testing)
    - [Git Hooks](#git-hooks)
-   - [GitHub Actions](#github-actions)
 10. [Common Testing Patterns](#common-testing-patterns)
 11. [Troubleshooting](#troubleshooting)
 
@@ -233,23 +232,9 @@ pip install -r requirements.txt
 pip install pytest pytest-cov pytest-asyncio
 ```
 
-### 2. Configure Test Environment
 
-Create a separate `.env.test` file for testing configuration:
 
-```bash
-# Create a test environment file
-cat > .env.test << EOF
-SECRET_KEY=test_secret_key
-CSRF_KEY=test_csrf_key
-DATABASE_URL=sqlite:///./test.db
-JWT_SECRET=test_jwt_secret
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=60
-EOF
-```
-
-### 3. Set Up Test Database
+### 2. Set Up Test Database
 
 The tests will automatically set up and tear down the test database (SQLite), but you can manually prepare it if needed:
 
@@ -258,7 +243,7 @@ The tests will automatically set up and tear down the test database (SQLite), bu
 rm -f test.db
 ```
 
-### 4. Clear Cached Test Results (Optional)
+### 3. Clear Cached Test Results (Optional)
 
 If you've run tests before, you might want to clear cached results:
 
@@ -267,7 +252,7 @@ If you've run tests before, you might want to clear cached results:
 rm -rf .pytest_cache
 ```
 
-### 5. Complete Example: Running Tests Locally
+### 4. Complete Example: Running Tests Locally
 
 Here's a complete example of setting up and running tests from scratch:
 
@@ -502,67 +487,6 @@ cp post-commit-hook.sh .git/hooks/post-commit
 chmod +x .git/hooks/post-commit
 ```
 
-### GitHub Actions
-
-GitHub Actions run in GitHub's cloud environment when changes are pushed to your repository.
-
-#### Setting Up GitHub Actions
-
-1. Create the workflows directory:
-
-```bash
-mkdir -p .github/workflows
-```
-
-2. Create a workflow file named `run-tests.yml`:
-
-```yaml
-name: Run Tests
-
-on:
-  push:
-    branches: [ main, dev ]
-  pull_request:
-    branches: [ main, dev ]
-  workflow_dispatch:
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    
-    strategy:
-      matrix:
-        python-version: [3.10, 3.11]
-
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-        cache: 'pip'
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pytest pytest-cov pytest-asyncio
-    
-    - name: Run tests
-      run: |
-        python -m pytest
-    
-    - name: Generate coverage report
-      run: |
-        python -m pytest --cov=app --cov-report=xml
-    
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./coverage.xml
-        fail_ci_if_error: false
-```
 
 ## Common Testing Patterns
 

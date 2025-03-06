@@ -8,7 +8,6 @@ A modern web application built with FastAPI, SQLAlchemy, and advanced testing.
 - [Features](#features)
 - [Quick Start](#quick-start)
 - [Installation](#installation)
-- [Configuration](#configuration)
 - [Running the Application](#running-the-application)
 - [API Documentation](#api-documentation)
 - [Project Structure](#project-structure)
@@ -48,10 +47,7 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Configure environment (minimal setup)
-echo "SECRET_KEY=your_secret_key_here" > .env
-echo "CSRF_KEY=your_csrf_key_here" >> .env
-echo "DATABASE_URL=sqlite:///./app.db" >> .env
+
 
 # Initialize database
 alembic upgrade head
@@ -103,29 +99,6 @@ venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-## ⚙️ Configuration
-
-The application uses environment variables for configuration. Create a `.env` file in the root directory with the following variables:
-
-```
-# Application
-APP_ENV=development
-DEBUG=True
-SECRET_KEY=your_secret_key_here
-CSRF_KEY=your_csrf_key_here
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-
-# Database
-DATABASE_URL=sqlite:///./app.db
-
-# For PostgreSQL (production)
-# DATABASE_URL=postgresql://username:password@localhost:5432/jkt_db
-
-# Security
-FRONTEND_HOST=http://localhost:3000
-BACKEND_CORS_ORIGINS=["http://localhost:3000","http://localhost:8000"]
-```
 
 ## 🚀 Running the Application
 
