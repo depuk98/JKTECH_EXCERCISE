@@ -24,7 +24,7 @@ from app.api.deps import verify_csrf_token
 
 # Create a test database
 TEST_DATABASE_URL = "sqlite:///./test.db"
-TEST_ASYNC_DATABASE_URL = "sqlite+aiosqlite:///./test_async.db"
+TEST_ASYNC_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 
 # Create test engine
 engine = create_engine(

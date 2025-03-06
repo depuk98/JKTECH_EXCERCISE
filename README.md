@@ -1,157 +1,254 @@
-# FastAPI Document Processing System
+# JKT Application
 
-A FastAPI-based document processing system with vector embeddings for semantic search, document management, and question answering capabilities.
+A modern web application built with FastAPI, SQLAlchemy, and advanced testing.
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Running the Application](#running-the-application)
+- [Testing](#testing)
+  - [Test Types](#test-types)
+  - [Running Tests](#running-tests)
+  - [Performance Testing](#performance-testing)
+  - [Troubleshooting Tests](#troubleshooting-tests)
+- [Project Structure](#project-structure)
+- [Contributing](#contributing)
+
+## Overview
+
+This application provides a robust backend service with an API for user management, document processing, and data retrieval. It features a comprehensive test suite to ensure reliability and performance.
 
 ## Features
 
 - User authentication and management
-- Document upload and processing (PDF, DOCX, TXT)
-- Hierarchical text chunking with sliding window 
-- Vector embeddings generation using Sentence Transformers
-- Vector storage with PostgreSQL + pgvector
-- Semantic search across document contents
-- **Document-based Question Answering (Q&A)**
-- **Integration with OpenAI and Ollama LLMs**
-- Modern UI with Bootstrap
-- Background processing of documents
+- Document upload and processing
+- RESTful API
+- Asynchronous operations
 - Comprehensive test coverage
+- Concurrent operation handling
 
-## Setup Instructions
+## Prerequisites
 
-### Prerequisites
+Before you begin, ensure you have the following installed:
 
-1. Python 3.9+
-2. PostgreSQL with pgvector extension
-3. Virtual environment (recommended)
-4. [Optional] Ollama for local LLM support
+- Python 3.10+ (recommended 3.11+)
+- PostgreSQL (for production) or SQLite (for development)
+- git
 
-### Installation
+## Installation
 
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd fastapi-document-processing
-   ```
+1. **Clone the repository**
 
-2. Create and activate a virtual environment:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
+```bash
+git clone <repository-url>
+cd JKT_EX
+```
 
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+2. **Create a virtual environment**
 
-4. Set up the pgvector extension for PostgreSQL:
-   ```bash
-   psql -U your_username -d your_database -c "CREATE EXTENSION IF NOT EXISTS vector;"
-   ```
+```bash
+python -m venv venv
+```
 
-5. Create a `.env` file with environment variables:
-   ```
-   DATABASE_URL=postgresql+asyncpg://username:password@localhost/dbname
-   POSTGRES_USER=username
-   POSTGRES_PASSWORD=password
-   POSTGRES_DB=dbname
-   SECRET_KEY=your_secret_key
-   ALGORITHM=HS256
-   ACCESS_TOKEN_EXPIRE_MINUTES=1440
-   OPENAI_API_KEY=your_openai_api_key  # Optional, for OpenAI integration
-   OLLAMA_BASE_URL=http://localhost:11434  # Optional, for Ollama integration
-   LLM_MODEL=llama3.1  # Options: gpt-4, gpt-3.5-turbo, llama3.1
-   ```
+3. **Activate the virtual environment**
 
-6. Run migrations:
-   ```bash
-   alembic upgrade head
-   ```
+On macOS/Linux:
+```bash
+source venv/bin/activate
+```
 
-### Running the Application
+On Windows:
+```bash
+venv\Scripts\activate
+```
 
-1. Start the application:
-   ```bash
-   uvicorn app.main:app --reload
-   ```
+4. **Install dependencies**
 
-2. Access the application at `http://localhost:8000`
-3. API documentation is available at `http://localhost:8000/docs`
+```bash
+pip install -r requirements.txt
+```
 
-## Usage
+## Configuration
 
-### Document Processing
+The application uses environment variables for configuration. Create a `.env` file in the root directory with the following variables:
 
-1. Log in to the application
-2. Navigate to the Documents page
-3. Upload a document (PDF, DOCX, or TXT)
-4. The system will process the document in the background:
-   - Extract text content
-   - Split into chunks with logical boundaries
-   - Generate vector embeddings
-   - Store in the database
+```
+# Application
+APP_ENV=development
+DEBUG=True
+SECRET_KEY=your_secret_key_here
+CSRF_KEY=your_csrf_key_here
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
 
-### Search
+# Database
+DATABASE_URL=sqlite:///./app.db
 
-1. Use the search bar to perform semantic searches across your documents
-2. Results are ranked by relevance based on vector similarity
+# For PostgreSQL (production)
+# DATABASE_URL=postgresql://username:password@localhost:5432/jkt_db
 
-### Question Answering (Q&A)
+# Security
+FRONTEND_HOST=http://localhost:3000
+BACKEND_CORS_ORIGINS=["http://localhost:3000","http://localhost:8000"]
+```
 
-1. Navigate to the Q&A page
-2. Select the documents you want to query or choose "All Documents"
-3. Enter your question in the input field
-4. The system will:
-   - Retrieve relevant document chunks using vector similarity
-   - Generate an answer based on the retrieved context
-   - Provide citations to source documents
-5. View the answer with references to the original documents
+## Running the Application
 
-## Architecture
+1. **Run database migrations (if using SQL database)**
 
-The application follows a clean, modular architecture:
+```bash
+alembic upgrade head
+```
 
-- **Models**: SQLAlchemy models for database tables
-- **Schemas**: Pydantic schemas for validation and serialization
-- **Services**: Business logic layer
-- **API Routes**: HTTP endpoints
-- **Core**: Configuration and dependencies
+2. **Start the development server**
 
-## Database Schema
+```bash
+uvicorn app.main:app --reload
+```
 
-- **users**: User information and authentication
-- **documents**: Document metadata
-- **document_chunks**: Document content with vector embeddings
+The application will be available at http://localhost:8000
 
-## Vector Search and RAG
-
-The application uses a Retrieval-Augmented Generation (RAG) approach:
-
-1. Document search uses the pgvector extension to perform efficient similarity searches:
-   - The query text is converted to an embedding vector
-   - A vector similarity search is performed (using cosine similarity)
-   - Results are returned sorted by similarity score
-
-2. For Q&A, the system:
-   - Retrieves relevant document chunks using vector search
-   - Formats the chunks with citations as context
-   - Passes the context to an LLM (OpenAI or Ollama)
-   - Returns the generated answer with citations
+API documentation is available at:
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
 
 ## Testing
 
-Run the test suite with:
+The project includes a comprehensive test suite covering unit, integration, API, and performance tests.
+
+### Test Types
+
+- **Unit Tests**: Test individual components in isolation
+- **Integration Tests**: Test interactions between components
+- **API Tests**: Test API endpoints
+- **DB Tests**: Test database operations
+- **Performance Tests**: Test application performance and concurrency
+
+### Running Tests
+
+1. **Run all tests**
 
 ```bash
 pytest
 ```
 
-For coverage reports:
+2. **Run specific test modules**
 
 ```bash
-pytest --cov=app
+# Run API tests
+pytest tests/test_api/
+
+# Run DB tests
+pytest tests/test_db/
+
+# Run integration tests
+pytest tests/test_integration/
+
+# Run service tests
+pytest tests/test_services/
+
+# Run performance tests
+pytest tests/test_performance/
 ```
 
-## License
+3. **Run specific test files**
 
-MIT 
+```bash
+# Run a specific test file
+pytest tests/test_api/test_users.py
+```
+
+4. **Run a specific test**
+
+```bash
+# Run a specific test function
+pytest tests/test_performance/test_concurrency.py::test_concurrent_write_operations
+```
+
+5. **Run tests with verbose output**
+
+```bash
+pytest -v
+```
+
+6. **Run tests with increased log level**
+
+```bash
+pytest --log-cli-level=INFO
+```
+
+### Performance Testing
+
+Performance tests verify the application's ability to handle concurrent operations and maintain data integrity under load:
+
+```bash
+# Run all performance tests
+pytest tests/test_performance/
+
+# Run concurrency tests
+pytest tests/test_performance/test_concurrency.py
+```
+
+### Troubleshooting Tests
+
+If you encounter database-related issues in tests:
+
+1. **Check database configuration**
+
+   Make sure the test database is properly configured in `tests/conftest.py`.
+
+2. **SQLite concurrency issues**
+
+   SQLite has limitations with concurrent write operations. For concurrent tests, consider:
+   
+   - Using separate database sessions for each task
+   - Using a PostgreSQL database for testing concurrent operations
+   - Ensuring proper transaction isolation
+
+3. **Asynchronous test issues**
+
+   - Ensure you're using the correct fixtures (e.g., `async_db` for async tests)
+   - Check that async database operations use the correct syntax
+   - Verify that async sessions are properly closed after use
+
+## Project Structure
+
+```
+JKT_EX/
+├── alembic/              # Database migrations
+├── app/                  # Main application
+│   ├── api/              # API endpoints and dependencies
+│   ├── core/             # Core settings and security
+│   ├── db/               # Database session and models
+│   ├── models/           # SQLAlchemy models
+│   ├── schemas/          # Pydantic schemas
+│   ├── services/         # Business logic
+│   ├── templates/        # HTML templates
+│   ├── static/           # Static files
+│   ├── utils/            # Utility functions
+│   ├── main.py           # Application entry point
+│   └── __init__.py
+├── tests/                # Test suite
+│   ├── test_api/         # API tests
+│   ├── test_db/          # Database tests
+│   ├── test_integration/ # Integration tests
+│   ├── test_performance/ # Performance/concurrency tests
+│   ├── test_services/    # Service tests
+│   ├── conftest.py       # Test fixtures and configuration
+│   └── __init__.py
+├── requirements.txt      # Dependencies
+├── .env                  # Environment variables (create this)
+└── README.md             # This file
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature-name`
+3. Commit your changes: `git commit -m 'Add some feature'`
+4. Push to the branch: `git push origin feature-name`
+5. Submit a pull request 

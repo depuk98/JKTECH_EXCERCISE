@@ -46,6 +46,136 @@ document.addEventListener('DOMContentLoaded', function() {
     statSearches.textContent = searchCount;
     statQuestions.textContent = questionCount;
     
+    // WebSocket connection for real-time document status updates
+    let socket = null;
+    let socketReconnectAttempts = 0;
+    const MAX_RECONNECT_ATTEMPTS = 5;
+    
+    function connectWebSocket() {
+        // Get the authentication token
+        const token = localStorage.getItem('token');
+        if (!token) {
+            console.error('Cannot connect WebSocket: No authentication token found');
+            return;
+        }
+        
+        // Close existing socket if any
+        if (socket) {
+            socket.close();
+        }
+        
+        // Create WebSocket connection
+        socket = new WebSocket(`ws://${window.location.host}/api/documents/ws/status?token=${token}`);
+        
+        socket.onopen = function() {
+            console.log('WebSocket connection established');
+            socketReconnectAttempts = 0; // Reset reconnect attempts on successful connection
+            
+            // Send a ping message every 30 seconds to keep the connection alive
+            setInterval(() => {
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send('ping');
+                }
+            }, 30000);
+        };
+        
+        socket.onmessage = function(event) {
+            try {
+                const data = JSON.parse(event.data);
+                console.log('WebSocket message received:', data);
+                
+                if (data.type === 'document_update') {
+                    // Handle document status update
+                    handleDocumentStatusUpdate(data);
+                }
+            } catch (e) {
+                console.error('Error processing WebSocket message:', e);
+            }
+        };
+        
+        socket.onclose = function(event) {
+            console.log('WebSocket connection closed', event);
+            
+            // Attempt to reconnect if not a normal closure and under max attempts
+            if (event.code !== 1000 && socketReconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                socketReconnectAttempts++;
+                const delay = Math.min(1000 * socketReconnectAttempts, 5000); // Exponential backoff up to 5 seconds
+                console.log(`Attempting to reconnect WebSocket in ${delay}ms (attempt ${socketReconnectAttempts})`);
+                
+                setTimeout(connectWebSocket, delay);
+            }
+        };
+        
+        socket.onerror = function(error) {
+            console.error('WebSocket error:', error);
+        };
+    }
+    
+    // Handle document status update from WebSocket
+    function handleDocumentStatusUpdate(data) {
+        const { document_id, status, error_message } = data;
+        
+        // Find the document row in the table
+        const rows = document.querySelectorAll('#document-list tr');
+        let found = false;
+        
+        rows.forEach(row => {
+            const deleteButton = row.querySelector('.delete-document');
+            if (deleteButton && deleteButton.getAttribute('data-id') == document_id) {
+                found = true;
+                
+                // Update the status badge
+                const statusBadge = row.querySelector('.status-badge');
+                if (statusBadge) {
+                    // Remove existing status classes
+                    statusBadge.classList.remove('pending', 'processing', 'processed', 'error', 'warning');
+                    
+                    // Add new status class
+                    statusBadge.classList.add(status);
+                    
+                    // Update text
+                    statusBadge.textContent = capitalizeFirst(status);
+                    
+                    // Handle error message tooltip if present
+                    if ((status === 'error' || status === 'warning') && error_message) {
+                        statusBadge.setAttribute('data-bs-toggle', 'tooltip');
+                        statusBadge.setAttribute('data-bs-placement', 'top');
+                        statusBadge.setAttribute('title', error_message);
+                        
+                        // Re-initialize the tooltip
+                        new bootstrap.Tooltip(statusBadge);
+                    } else {
+                        // Remove tooltip if not error/warning
+                        if (statusBadge.hasAttribute('data-bs-toggle')) {
+                            const tooltip = bootstrap.Tooltip.getInstance(statusBadge);
+                            if (tooltip) {
+                                tooltip.dispose();
+                            }
+                            statusBadge.removeAttribute('data-bs-toggle');
+                            statusBadge.removeAttribute('data-bs-placement');
+                            statusBadge.removeAttribute('title');
+                        }
+                    }
+                }
+                
+                // If status changed to processed, update stats
+                if (status === 'processed') {
+                    // Increment processed documents count if needed
+                    const currentProcessed = parseInt(statProcessedDocuments.textContent);
+                    // Only increment if the previous status wasn't already processed
+                    if (!statusBadge.classList.contains('processed')) {
+                        statProcessedDocuments.textContent = (currentProcessed + 1).toString();
+                    }
+                }
+            }
+        });
+        
+        // If document not found in the table (e.g., newly added), refresh the list
+        if (!found) {
+            loadDocuments();
+        }
+    }
+    
     // Document upload handling
     if (dropArea) {
         // Prevent default behavior to open dropped files
@@ -362,7 +492,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // Call performSearch which will handle incrementing the search count
+            // Update search count
+            searchCount++;
+            localStorage.setItem('searchCount', searchCount);
+            statSearches.textContent = searchCount;
+            
             performSearch(query);
         });
     }
@@ -442,17 +576,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const score = result.score || result.similarity_score || result.similarity || 0.7;
             const text = result.text || result.content || result.chunk_text || '';
             
-            // Truncate documentName if it's too long (for display purposes)
-            const maxDisplayLength = 40;
-            const displayName = documentName.length > maxDisplayLength 
-                ? documentName.substring(0, maxDisplayLength) + '...' 
-                : documentName;
-            
             html += `
                 <div class="list-group-item search-result p-3" style="animation-delay: ${animationDelay}s">
                     <div class="search-result-header d-flex justify-content-between align-items-center mb-1">
-                        <span class="document-name" title="${documentName}" data-bs-toggle="tooltip">
-                            <i class="bi bi-file-earmark-text me-1"></i> <strong>${displayName}</strong>
+                        <span class="document-name">
+                            <i class="bi bi-file-earmark-text me-1"></i> ${documentName}
                         </span>
                         <span class="search-result-score">
                             ${Math.round(score * 100)}% match
@@ -470,12 +598,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         searchResults.innerHTML = html;
         searchResultsContainer.classList.remove('d-none');
-        
-        // Initialize tooltips
-        const tooltips = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        tooltips.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl);
-        });
     }
     
     function highlightQuery(text, query) {
@@ -594,4 +716,5 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize
     loadDocuments();
     loadUserProfile();
+    connectWebSocket(); // Connect to WebSocket for real-time updates
 }); 

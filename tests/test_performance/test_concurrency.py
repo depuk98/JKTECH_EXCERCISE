@@ -85,7 +85,7 @@ def test_concurrent_read_requests(client, user_token_headers):
 
 
 @pytest.mark.asyncio
-async def test_concurrent_write_operations():
+async def test_concurrent_write_operations(db):
     """
     Test the application's ability to handle concurrent write operations
     while maintaining data integrity.
@@ -101,14 +101,13 @@ async def test_concurrent_write_operations():
     - The database should properly handle transaction isolation
     """
     # Import here to avoid circular imports
-    from app.db.session import get_db
     from app.models.document import Document
     from app.models.user import User
     from app.services.document import DocumentService
     from app.core.security import create_access_token, get_password_hash
+    from tests.conftest import TestingSessionLocal
 
     # Create test users in the database
-    db = next(get_db())
     user_ids = []
     
     # Use timestamp to ensure unique emails
@@ -139,37 +138,39 @@ async def test_concurrent_write_operations():
     
     # Task to simulate a user uploading a document
     async def upload_document(user_id, token, document_name):
-        # Get a database session
-        db = next(get_db())
-        
-        # Create document service
-        document_service = DocumentService()
-        
-        # Create a test document
-        document = Document(
-            user_id=user_id,
-            filename=f"{document_name}_{user_id}.pdf",
-            content_type="application/pdf",
-            status="uploaded"
-        )
-        
-        # Simulate processing delay
-        await asyncio.sleep(0.1)
-        
-        # Save the document
-        db.add(document)
-        db.commit()
-        db.refresh(document)
-        
-        # Simulate document processing
-        await asyncio.sleep(0.2)
-        
-        # Update the document status
-        document.status = "processed"
-        db.add(document)
-        db.commit()
-        
-        return document.id
+        # Create a new session for each task
+        task_db = TestingSessionLocal()
+        try:
+            # Create document service
+            document_service = DocumentService()
+            
+            # Create a test document
+            document = Document(
+                user_id=user_id,
+                filename=f"{document_name}_{user_id}.pdf",
+                content_type="application/pdf",
+                status="uploaded"
+            )
+            
+            # Simulate processing delay
+            await asyncio.sleep(0.1)
+            
+            # Save the document
+            task_db.add(document)
+            task_db.commit()
+            task_db.refresh(document)
+            
+            # Simulate document processing
+            await asyncio.sleep(0.2)
+            
+            # Update the document status
+            document.status = "processed"
+            task_db.add(document)
+            task_db.commit()
+            
+            return document.id
+        finally:
+            task_db.close()
     
     # Create multiple concurrent tasks
     tasks = []
@@ -186,7 +187,6 @@ async def test_concurrent_write_operations():
     assert all(doc_id is not None for doc_id in document_ids)
     
     # Verify documents in database
-    db = next(get_db())
     for doc_id in document_ids:
         document = db.query(Document).filter(Document.id == doc_id).first()
         assert document is not None
