@@ -6,40 +6,67 @@ A modern web application built with FastAPI, SQLAlchemy, and advanced testing.
 
 - [Overview](#overview)
 - [Features](#features)
-- [Prerequisites](#prerequisites)
+- [Quick Start](#quick-start)
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [Running the Application](#running-the-application)
-- [Testing](#testing)
-  - [Test Types](#test-types)
-  - [Running Tests](#running-tests)
-  - [Performance Testing](#performance-testing)
-  - [Troubleshooting Tests](#troubleshooting-tests)
+- [API Documentation](#api-documentation)
 - [Project Structure](#project-structure)
-- [Contributing](#contributing)
+- [Documentation](#documentation)
 
 ## Overview
 
-This application provides a robust backend service with an API for user management, document processing, and data retrieval. It features a comprehensive test suite to ensure reliability and performance.
+JKT is a robust backend service with an API for user management, document processing, and data retrieval. It features a comprehensive test suite to ensure reliability and performance.
 
 ## Features
 
 - User authentication and management
 - Document upload and processing
-- RESTful API
-- Asynchronous operations
+- RESTful API with OpenAPI documentation
+- Asynchronous operations for improved performance
 - Comprehensive test coverage
 - Concurrent operation handling
+- Vector embeddings for semantic search
 
-## Prerequisites
+## Quick Start
 
-Before you begin, ensure you have the following installed:
+Get up and running in 5 minutes:
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd JKT_EX
+
+# Create and activate virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Configure environment (minimal setup)
+echo "SECRET_KEY=your_secret_key_here" > .env
+echo "CSRF_KEY=your_csrf_key_here" >> .env
+echo "DATABASE_URL=sqlite:///./app.db" >> .env
+
+# Initialize database
+alembic upgrade head
+
+# Start the application
+uvicorn app.main:app --reload
+```
+
+The application will be available at http://localhost:8000
+
+## Installation
+
+### Prerequisites
 
 - Python 3.10+ (recommended 3.11+)
 - PostgreSQL (for production) or SQLite (for development)
-- git
+- Git
 
-## Installation
+### Detailed Installation Steps
 
 1. **Clone the repository**
 
@@ -98,7 +125,7 @@ BACKEND_CORS_ORIGINS=["http://localhost:3000","http://localhost:8000"]
 
 ## Running the Application
 
-1. **Run database migrations (if using SQL database)**
+1. **Run database migrations**
 
 ```bash
 alembic upgrade head
@@ -112,108 +139,35 @@ uvicorn app.main:app --reload
 
 The application will be available at http://localhost:8000
 
-API documentation is available at:
+## API Documentation
+
 - Swagger UI: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
 
-## Testing
+### Common API Operations
 
-The project includes a comprehensive test suite covering unit, integration, API, and performance tests.
-
-### Test Types
-
-- **Unit Tests**: Test individual components in isolation
-- **Integration Tests**: Test interactions between components
-- **API Tests**: Test API endpoints
-- **DB Tests**: Test database operations
-- **Performance Tests**: Test application performance and concurrency
-
-### Running Tests
-
-1. **Run all tests**
+#### Create a User
 
 ```bash
-pytest
+curl -X POST "http://localhost:8000/api/users/" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com","password":"securepassword","username":"testuser"}'
 ```
 
-2. **Run specific test modules**
+#### Login
 
 ```bash
-# Run API tests
-pytest tests/test_api/
-
-# Run DB tests
-pytest tests/test_db/
-
-# Run integration tests
-pytest tests/test_integration/
-
-# Run service tests
-pytest tests/test_services/
-
-# Run performance tests
-pytest tests/test_performance/
+curl -X POST "http://localhost:8000/api/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{"username":"user@example.com","password":"securepassword"}'
 ```
 
-3. **Run specific test files**
+#### View Your Profile
 
 ```bash
-# Run a specific test file
-pytest tests/test_api/test_users.py
+curl -X GET "http://localhost:8000/api/users/me" \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
-
-4. **Run a specific test**
-
-```bash
-# Run a specific test function
-pytest tests/test_performance/test_concurrency.py::test_concurrent_write_operations
-```
-
-5. **Run tests with verbose output**
-
-```bash
-pytest -v
-```
-
-6. **Run tests with increased log level**
-
-```bash
-pytest --log-cli-level=INFO
-```
-
-### Performance Testing
-
-Performance tests verify the application's ability to handle concurrent operations and maintain data integrity under load:
-
-```bash
-# Run all performance tests
-pytest tests/test_performance/
-
-# Run concurrency tests
-pytest tests/test_performance/test_concurrency.py
-```
-
-### Troubleshooting Tests
-
-If you encounter database-related issues in tests:
-
-1. **Check database configuration**
-
-   Make sure the test database is properly configured in `tests/conftest.py`.
-
-2. **SQLite concurrency issues**
-
-   SQLite has limitations with concurrent write operations. For concurrent tests, consider:
-   
-   - Using separate database sessions for each task
-   - Using a PostgreSQL database for testing concurrent operations
-   - Ensuring proper transaction isolation
-
-3. **Asynchronous test issues**
-
-   - Ensure you're using the correct fixtures (e.g., `async_db` for async tests)
-   - Check that async database operations use the correct syntax
-   - Verify that async sessions are properly closed after use
 
 ## Project Structure
 
@@ -242,13 +196,41 @@ JKT_EX/
 │   └── __init__.py
 ├── requirements.txt      # Dependencies
 ├── .env                  # Environment variables (create this)
-└── README.md             # This file
+├── DEVELOPMENT.md        # Development guide
+└── TESTING.md            # Testing guide
 ```
 
-## Contributing
+## Documentation
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature-name`
-3. Commit your changes: `git commit -m 'Add some feature'`
-4. Push to the branch: `git push origin feature-name`
-5. Submit a pull request 
+- [DEVELOPMENT.md](DEVELOPMENT.md) - Detailed architecture and development guide
+- [TESTING.md](TESTING.md) - Comprehensive testing guide
+
+## Troubleshooting
+
+### Database Errors
+
+If you see database errors, try:
+
+```bash
+# Reset the database
+rm app.db
+alembic upgrade head
+```
+
+### Import Errors
+
+If you encounter import errors:
+
+```bash
+# Verify your Python path includes the project root
+export PYTHONPATH=$PYTHONPATH:$(pwd)
+```
+
+### Port Already in Use
+
+If port 8000 is already in use:
+
+```bash
+# Specify a different port
+uvicorn app.main:app --reload --port 8080
+``` 
