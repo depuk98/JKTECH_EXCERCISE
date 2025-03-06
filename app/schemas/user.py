@@ -1,6 +1,6 @@
 from typing import Optional
 from datetime import datetime
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 # Shared properties
 class UserBase(BaseModel):
@@ -18,7 +18,8 @@ class UserCreate(UserBase):
     username: str
     password: str = Field(..., min_length=8)
     
-    @validator('username')
+    @field_validator('username')
+    @classmethod
     def username_alphanumeric(cls, v):
         """Validate that username is alphanumeric."""
         assert v.isalnum(), 'Username must be alphanumeric'
@@ -36,9 +37,7 @@ class User(UserBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
     
-    class Config:
-        """Pydantic config."""
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 # Properties for user authentication
 class UserLogin(BaseModel):
@@ -55,4 +54,5 @@ class Token(BaseModel):
 # Token payload schema
 class TokenPayload(BaseModel):
     """Token payload schema."""
-    sub: Optional[str] = None 
+    sub: Optional[str] = None
+    exp: Optional[float] = None  # Expiration time as a timestamp 

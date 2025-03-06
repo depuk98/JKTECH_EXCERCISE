@@ -7,12 +7,17 @@ from fastapi.responses import RedirectResponse
 from app.core.config import settings
 from app.api.routes import api_router
 from app.db.session import engine
+from app.api.deps import verify_csrf_token
 # Import Base directly from base_class for database initialization
 # Note: model_registry.py is only needed by Alembic for migrations
 from app.db.base_class import Base
+from app.db.init_db import init_db_sync
 
-# Create database tables
-Base.metadata.create_all(bind=engine)
+# Initialize database tables with synchronous engine
+# This will only be used when running the app directly
+# For async engine, the initialization is done in run.py
+if "asyncpg" not in str(engine.url) and "aiosqlite" not in str(engine.url):
+    init_db_sync(engine)
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -36,7 +41,8 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 # Set up templates
 templates = Jinja2Templates(directory="app/templates")
 
-# Include API routes
+# Include API routes with CSRF protection
+api_router.dependencies = [Depends(verify_csrf_token)]
 app.include_router(api_router, prefix="/api")
 
 @app.get("/", response_class=RedirectResponse)
@@ -62,7 +68,8 @@ async def signup_page(request: Request):
 @app.get("/dashboard", include_in_schema=False)
 async def dashboard_page(request: Request):
     """Render the dashboard page."""
-    return templates.TemplateResponse("dashboard.html", {"request": request})
+    import time
+    return templates.TemplateResponse("dashboard.html", {"request": request, "now": int(time.time())})
 
 @app.get("/qa", include_in_schema=False)
 async def qa_page(request: Request):

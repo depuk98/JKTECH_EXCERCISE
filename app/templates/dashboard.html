@@ -61,6 +61,16 @@
     color: #6c757d;
 }
 
+.document-name {
+    font-size: 0.95rem;
+    color: #0d6efd;
+    max-width: 70%;
+    display: inline-block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .search-result-score {
     font-weight: bold;
     color: #0d6efd;
@@ -348,5 +358,5 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', path='/js/apiUtils.js') }}"></script>
-<script src="{{ url_for('static', path='/js/dashboard.js') }}"></script>
+<script src="{{ url_for('static', path='/js/dashboard.js') }}?v={{ now }}"></script>
 {% endblock %} 

@@ -20,7 +20,8 @@ class Document(Base):
     file_path = Column(String, nullable=True)  # Path to original file if stored locally
     file_size = Column(Integer, nullable=True)  # Size in bytes
     page_count = Column(Integer, nullable=True)  # Number of pages (for PDFs, etc)
-    status = Column(String, nullable=False, default="pending")  # pending, processing, processed, error
+    status = Column(String, nullable=False, default="pending")  # pending, processing, processed, error, warning
+    error_message = Column(String, nullable=True)  # Error message if status is error or warning
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     

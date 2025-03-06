@@ -246,45 +246,43 @@ document.addEventListener('DOMContentLoaded', function() {
         let html = '';
         documents.forEach(doc => {
             const createdDate = new Date(doc.created_at).toLocaleDateString();
+            const errorTooltip = (doc.status === 'error' || doc.status === 'warning') && doc.error_message 
+                ? `data-bs-toggle="tooltip" data-bs-placement="top" title="${doc.error_message}"` 
+                : '';
             
             html += `
                 <tr>
                     <td>${doc.filename}</td>
                     <td>${getContentTypeDisplay(doc.content_type)}</td>
                     <td>
-                        <span class="status-badge ${doc.status}">
+                        <span class="status-badge ${doc.status}" ${errorTooltip}>
                             ${capitalizeFirst(doc.status)}
                         </span>
                     </td>
                     <td>${createdDate}</td>
                     <td>
                         <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-primary view-document" data-id="${doc.id}" title="View Document">
-                                <i class="bi bi-eye"></i>
-                            </button>
                             <button class="btn btn-outline-danger delete-document" data-id="${doc.id}" title="Delete Document">
                                 <i class="bi bi-trash"></i>
                             </button>
                         </div>
                     </td>
-                </tr>
-            `;
+                </tr>`;
         });
         
         documentList.innerHTML = html;
         
-        // Add event listeners to buttons
-        document.querySelectorAll('.delete-document').forEach(button => {
-            button.addEventListener('click', function() {
-                const docId = this.getAttribute('data-id');
-                confirmDeleteDocument(docId);
-            });
+        // Initialize tooltips on status badges
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
         });
         
-        document.querySelectorAll('.view-document').forEach(button => {
-            button.addEventListener('click', function() {
-                const docId = this.getAttribute('data-id');
-                viewDocument(docId);
+        // Add event listeners to delete buttons
+        document.querySelectorAll('.delete-document').forEach(button => {
+            button.addEventListener('click', () => {
+                const docId = button.getAttribute('data-id');
+                confirmDeleteDocument(docId);
             });
         });
     }
@@ -333,9 +331,10 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
     
+    // No-op function for backward compatibility in case there are any remaining references
     function viewDocument(docId) {
-        // Redirect to document view page
-        window.location.href = `/documents/${docId}`;
+        console.log('View document functionality has been disabled');
+        return false;
     }
     
     // Helper functions
@@ -363,11 +362,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // Update search count
-            searchCount++;
-            localStorage.setItem('searchCount', searchCount);
-            statSearches.textContent = searchCount;
-            
+            // Call performSearch which will handle incrementing the search count
             performSearch(query);
         });
     }
@@ -424,13 +419,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function displaySearchResults(results, query) {
-        console.log('Displaying search results:', results);
+        // Clear previous results
+        searchResults.innerHTML = '';
         searchLoading.classList.add('d-none');
         
         if (!results || results.length === 0) {
             noResults.classList.remove('d-none');
             return;
         }
+        
+        noResults.classList.add('d-none');
         
         let html = '';
         results.forEach((result, index) => {
@@ -440,15 +438,21 @@ document.addEventListener('DOMContentLoaded', function() {
             // Normalize result structure
             const document = result.document || result.doc || {};
             const documentId = result.document_id || document.id || result.id || '';
-            const documentName = document.filename || result.document_name || 'Document';
-            const score = result.similarity_score || result.score || result.similarity || 0.7;
+            const documentName = result.document_filename || document.filename || result.document_name || 'Document';
+            const score = result.score || result.similarity_score || result.similarity || 0.7;
             const text = result.text || result.content || result.chunk_text || '';
+            
+            // Truncate documentName if it's too long (for display purposes)
+            const maxDisplayLength = 40;
+            const displayName = documentName.length > maxDisplayLength 
+                ? documentName.substring(0, maxDisplayLength) + '...' 
+                : documentName;
             
             html += `
                 <div class="list-group-item search-result p-3" style="animation-delay: ${animationDelay}s">
                     <div class="search-result-header d-flex justify-content-between align-items-center mb-1">
-                        <span class="document-name">
-                            <i class="bi bi-file-earmark-text me-1"></i> ${documentName}
+                        <span class="document-name" title="${documentName}" data-bs-toggle="tooltip">
+                            <i class="bi bi-file-earmark-text me-1"></i> <strong>${displayName}</strong>
                         </span>
                         <span class="search-result-score">
                             ${Math.round(score * 100)}% match
@@ -456,9 +460,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     <p class="search-result-text">${highlightQuery(text, query)}</p>
                     <div class="mt-2">
-                        <a href="/documents/${documentId}" class="btn btn-sm btn-outline-primary">
-                            <i class="bi bi-eye me-1"></i> View Document
-                        </a>
                         <a href="/qa?document=${documentId}" class="btn btn-sm btn-outline-secondary">
                             <i class="bi bi-question-circle me-1"></i> Ask about this
                         </a>
@@ -469,6 +470,12 @@ document.addEventListener('DOMContentLoaded', function() {
         
         searchResults.innerHTML = html;
         searchResultsContainer.classList.remove('d-none');
+        
+        // Initialize tooltips
+        const tooltips = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltips.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
     }
     
     function highlightQuery(text, query) {

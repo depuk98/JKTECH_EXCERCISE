@@ -1,11 +1,11 @@
 from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 import logging
 
-from app.db.session import get_db
+from app.db.session import get_async_db
 from app.models.user import User
-from app.api.deps import get_current_active_user
+from app.api.deps import get_current_active_user_async
 from app.services.rag import rag_service
 from app.services.document import DocumentService
 
@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 @router.post("/ask", response_model=dict)
 async def ask_question(
     *,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_async_db),
+    current_user: User = Depends(get_current_active_user_async),
     query: str = Body(None, embed=True),
     question: str = Body(None, embed=True),
     document_ids: Optional[List[int]] = Body(None, embed=True),
@@ -102,11 +102,3 @@ async def ask_question(
             detail=f"Failed to process question: {str(e)}"
         )
 
-# Note: We removed the duplicate "/documents" endpoint that was previously here.
-# The Q&A page now uses the main /api/documents endpoint from app/api/routes/documents.py
-# to retrieve documents and filters them client-side for only processed documents.
-# This follows the DRY principle and maintains a single source of truth for document data.
-
-# The old endpoint was:
-# @router.get("/documents", response_model=List[dict])
-# async def get_available_documents(...) 

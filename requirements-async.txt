@@ -1,0 +1,22 @@
+# Async database drivers
+asyncpg>=0.27.0  # PostgreSQL async driver
+aiosqlite>=0.18.0  # SQLite async driver
+sqlalchemy>=2.0.0  # SQLAlchemy with async support
+pgvector>=0.2.0  # PostgreSQL vector extension
+
+# FastAPI and dependencies
+fastapi>=0.95.0
+uvicorn>=0.22.0
+python-dotenv>=1.0.0
+python-jose>=3.3.0
+passlib>=1.7.4
+python-multipart>=0.0.6
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# Document processing
+langchain>=0.0.267
+langchain-community>=0.0.1
+sentence-transformers>=2.2.2
+pypdf>=3.15.1
+docx2txt>=0.8 

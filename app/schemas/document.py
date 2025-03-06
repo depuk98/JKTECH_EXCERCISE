@@ -78,6 +78,7 @@ class Document(BaseModel):
     file_size: Optional[int] = None
     page_count: Optional[int] = None
     status: str
+    error_message: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
     chunks: Optional[List[DocumentChunk]] = []

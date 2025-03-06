@@ -201,16 +201,46 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Process answer text to highlight citation numbers
                 let processedAnswer = result.answer;
                 
-                // Replace citation markers like [1], [2], etc. with more visible span elements
+                // Replace citation markers like [1], [2], etc. with more visible interactive elements
                 for (let i = 1; i <= result.citations.length; i++) {
                     const regex = new RegExp(`\\[${i}\\]`, 'g');
                     processedAnswer = processedAnswer.replace(
                         regex, 
-                        `<span class="citation-ref" title="Citation ${i}">[${i}]</span>`
+                        `<a href="#citation-${i}" class="citation-ref" data-citation-id="${i}" 
+                           onclick="event.preventDefault(); highlightCitation(${i});" 
+                           title="View source ${i}: ${result.citations[i-1].filename || 'Unknown'}">
+                           [${i}]
+                         </a>`
                     );
                 }
                 
                 answerContent.innerHTML = processedAnswer;
+                
+                // Add the highlight citation function if it doesn't exist
+                if (!window.highlightCitation) {
+                    window.highlightCitation = function(id) {
+                        // Remove highlight from all citations
+                        document.querySelectorAll('.citation-item').forEach(item => {
+                            item.classList.remove('citation-highlight');
+                        });
+                        
+                        // Add highlight to the clicked citation
+                        const citationItem = document.getElementById(`citation-${id}`);
+                        if (citationItem) {
+                            citationItem.classList.add('citation-highlight');
+                            citationItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                        
+                        // Also highlight all references to this citation in the text
+                        document.querySelectorAll(`.citation-ref[data-citation-id="${id}"]`).forEach(ref => {
+                            ref.classList.add('citation-active');
+                            // Remove the active class after a delay
+                            setTimeout(() => {
+                                ref.classList.remove('citation-active');
+                            }, 3000);
+                        });
+                    }
+                }
             } else {
                 answerContent.innerHTML = result.answer;
             }
@@ -252,27 +282,79 @@ document.addEventListener('DOMContentLoaded', () => {
             result.citations.forEach((citation, index) => {
                 const citationElement = document.createElement('div');
                 citationElement.className = 'citation-item py-2';
+                citationElement.id = `citation-${index + 1}`;
                 
                 // Extract filename without path
                 const filename = citation.filename || 'Unknown Document';
                 
                 // Format page info if available
                 const pageInfo = citation.metadata && citation.metadata.page 
-                    ? `(Page ${citation.metadata.page})` 
+                    ? `Page ${citation.metadata.page}` 
                     : '';
                 
-                // Build the citation HTML
+                // Format title if available
+                const titleInfo = citation.metadata && citation.metadata.title 
+                    ? citation.metadata.title 
+                    : '';
+                
+                // Get relevance score if available
+                const scoreInfo = citation.score !== undefined 
+                    ? Math.round(citation.score * 100) 
+                    : null;
+                
+                // Get snippet if available
+                const snippet = citation.snippet || '';
+                
+                // Build the citation HTML with more details, snippet, and a "jump to text" button
                 citationElement.innerHTML = `
-                    <strong>${index + 1}.</strong> 
-                    <span class="citation-text">${filename}</span>
-                    <div class="citation-source small text-muted">
-                        <i class="bi bi-file-earmark-text me-1"></i>
-                        ${pageInfo}
-                        ${citation.metadata && citation.metadata.title ? `<div class="mt-1">${citation.metadata.title}</div>` : ''}
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <span class="citation-number badge bg-primary me-2">${index + 1}</span>
+                            <span class="citation-text fw-bold">${filename}</span>
+                            ${scoreInfo ? `<span class="badge bg-secondary ms-2" title="Relevance score">Match: ${scoreInfo}%</span>` : ''}
+                        </div>
+                        <button class="btn btn-sm btn-outline-primary citation-jump" 
+                                onclick="findCitationInText(${index + 1})" 
+                                title="Find in text">
+                            <i class="bi bi-arrow-up-square"></i>
+                        </button>
+                    </div>
+                    <div class="citation-source small text-muted mt-1">
+                        <div class="d-flex gap-2 mb-1">
+                            <i class="bi bi-file-earmark-text"></i>
+                            ${pageInfo ? `<span>${pageInfo}</span>` : ''}
+                            ${titleInfo ? `<span class="text-truncate">${titleInfo}</span>` : ''}
+                        </div>
+                        ${snippet ? `
+                            <div class="citation-snippet mt-2 p-2 bg-white rounded border">
+                                <small class="text-muted fw-light">Excerpt:</small>
+                                <div class="small fw-light">${snippet}</div>
+                            </div>
+                        ` : ''}
                     </div>
                 `;
                 citationsList.appendChild(citationElement);
             });
+            
+            // Add the find citation in text function if it doesn't exist
+            if (!window.findCitationInText) {
+                window.findCitationInText = function(id) {
+                    const citationRef = document.querySelector(`.citation-ref[data-citation-id="${id}"]`);
+                    if (citationRef) {
+                        // Highlight all instances of this citation
+                        document.querySelectorAll(`.citation-ref[data-citation-id="${id}"]`).forEach(ref => {
+                            ref.classList.add('citation-active');
+                            // Remove the highlight after a delay
+                            setTimeout(() => {
+                                ref.classList.remove('citation-active');
+                            }, 3000);
+                        });
+                        
+                        // Scroll to the first instance
+                        citationRef.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            }
             
             // Make sure the citations container is visible
             citationsContainer.classList.remove('d-none');

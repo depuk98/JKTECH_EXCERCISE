@@ -25,10 +25,11 @@ import re  # For simple token counting
 import httpx
 from sqlalchemy.orm import Session
 from sqlalchemy import text  # For SQL queries
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # LangChain imports for Ollama integration
 try:
-    from langchain_community.llms import Ollama
+    from langchain_ollama import OllamaLLM
     LANGCHAIN_AVAILABLE = True
 except ImportError:
     LANGCHAIN_AVAILABLE = False
@@ -91,7 +92,7 @@ class RAGService:
             if LANGCHAIN_AVAILABLE:
                 try:
                     # Just initialize the client to check connection
-                    ollama = Ollama(base_url=base_url, model=self.model_name)
+                    ollama = OllamaLLM(base_url=base_url, model=self.model_name)
                     # Simple test with a quick prompt
                     result = ollama.invoke("Hello, how are you?")
                     if result and isinstance(result, str):
@@ -172,7 +173,7 @@ class RAGService:
     
     async def retrieve_context(
         self,
-        db: Session,
+        db: AsyncSession,
         user_id: int,
         query: str,
         document_ids: Optional[List[int]] = None,
@@ -228,7 +229,7 @@ class RAGService:
                     FROM document_chunks dc
                     JOIN documents d ON dc.document_id = d.id
                     WHERE d.user_id = :user_id
-                    AND d.id IN :document_ids
+                    AND d.id = ANY(:document_ids)
                     ORDER BY dc.embedding <=> (SELECT vector FROM query_vector)
                     LIMIT :limit
                 """
@@ -243,15 +244,15 @@ class RAGService:
                 """
                 
                 # Ensure helper function exists
-                db.execute(text(setup_sql))
-                db.commit()
+                await db.execute(text(setup_sql))
+                await db.commit()
                 
                 # Execute the query
-                result = db.execute(
+                result = await db.execute(
                     text(vector_search_query), 
                     {
                         "user_id": user_id,
-                        "document_ids": tuple(document_ids),
+                        "document_ids": document_ids,  # Pass as a list, ANY() will handle it
                         "embedding_json": f"[{','.join(str(x) for x in query_embedding)}]",
                         "limit": top_k
                     }
@@ -281,7 +282,7 @@ class RAGService:
                         })
                 return context
                 
-            # Process results from document_ids specific query
+            # Process result rows
             context = []
             for row in result:
                 context.append({
@@ -442,7 +443,7 @@ Your answer:
             if LANGCHAIN_AVAILABLE:
                 try:
                     logger.info(f"Using LangChain with Ollama model: {self.model_name}")
-                    ollama = Ollama(
+                    ollama = OllamaLLM(
                         base_url=base_url,
                         model=self.model_name,
                         temperature=self.temperature
@@ -583,7 +584,7 @@ Your answer:
     
     async def answer_question(
         self, 
-        db: Session,
+        db: AsyncSession,
         user_id: int,
         query: str,
         document_ids: Optional[List[int]] = None,
@@ -752,7 +753,7 @@ Your answer:
     
     async def get_available_documents(
         self,
-        db: Session,
+        db: AsyncSession,
         user_id: int
     ) -> List[Dict[str, Any]]:
         """

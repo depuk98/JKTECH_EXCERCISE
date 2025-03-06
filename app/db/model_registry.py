@@ -17,6 +17,9 @@ from app.db.base_class import Base
 from app.models.user import User
 from app.models.document import Document, DocumentChunk
 
+# Explicitly define what's exported from this module
+__all__ = ['User', 'Document', 'DocumentChunk', 'Base']
+
 # Add future models imports here
 # from app.models.item import Item
 # from app.models.role import Role

@@ -8,7 +8,7 @@ Having this in a separate file prevents circular imports, as models can import
 Base from here, while model_registry.py can import both Base and all models.
 """
 
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 # Create a base class for SQLAlchemy models
 Base = declarative_base() 
