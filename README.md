@@ -1,8 +1,8 @@
-# JKT Application
+# 🚀 JKT Application
 
 A modern web application built with FastAPI, SQLAlchemy, and advanced testing.
 
-## Table of Contents
+## 📋 Table of Contents
 
 - [Overview](#overview)
 - [Features](#features)
@@ -14,23 +14,25 @@ A modern web application built with FastAPI, SQLAlchemy, and advanced testing.
 - [Project Structure](#project-structure)
 - [Documentation](#documentation)
 
-## Overview
+## 🔍 Overview
 
 JKT is a robust backend service with an API for user management, document processing, and data retrieval. It features a comprehensive test suite to ensure reliability and performance.
 
-## Features
+## ✨ Features
 
-- User authentication and management
-- Document upload and processing
-- Hierarchical text chunking with sliding window 
-- Modern UI with Bootstrap
-- RESTful API with OpenAPI documentation
-- Asynchronous operations for improved performance
-- Comprehensive test coverage
-- Concurrent operation handling
-- Vector embeddings for semantic search
+- 🔐 User authentication and management
+- 📄 Document upload and processing
+- 🌐 RESTful API with OpenAPI documentation
+- ⚡ Asynchronous operations for improved performance
+- 🧪 Comprehensive test coverage
+- 🔄 Concurrent operation handling
+- 🔍 Vector embeddings for semantic search
+- 📚 Hierarchical text chunking with sliding window 
+- 🎨 Modern UI with Bootstrap
 
-## Quick Start
+![Application Screenshot](docs/images/app_screenshot.png)
+
+## 🚀 Quick Start
 
 Get up and running in 5 minutes:
 
@@ -60,12 +62,12 @@ uvicorn app.main:app --reload
 
 The application will be available at http://localhost:8000
 
-## Installation
+## 📦 Installation
 
 ### Prerequisites
 
 - Python 3.10+ (recommended 3.11+)
-- PostgreSQL 
+- PostgreSQL (for production) or SQLite (for development)
 - Git
 
 ### Detailed Installation Steps
@@ -101,7 +103,7 @@ venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-## Configuration
+## ⚙️ Configuration
 
 The application uses environment variables for configuration. Create a `.env` file in the root directory with the following variables:
 
@@ -124,11 +126,8 @@ DATABASE_URL=sqlite:///./app.db
 FRONTEND_HOST=http://localhost:3000
 BACKEND_CORS_ORIGINS=["http://localhost:3000","http://localhost:8000"]
 ```
-Set up the pgvector extension for PostgreSQL:
-   ```bash
-   psql -U your_username -d your_database -c "CREATE EXTENSION IF NOT EXISTS vector;"
-   ```
-## Running the Application
+
+## 🚀 Running the Application
 
 1. **Run database migrations**
 
@@ -144,10 +143,10 @@ uvicorn app.main:app --reload
 
 The application will be available at http://localhost:8000
 
-## API Documentation
+## 📚 API Documentation
 
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
+- 🔍 Swagger UI: http://localhost:8000/docs
+- 📖 ReDoc: http://localhost:8000/redoc
 
 ### Common API Operations
 
@@ -174,7 +173,7 @@ curl -X GET "http://localhost:8000/api/users/me" \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 JKT_EX/
@@ -205,12 +204,12 @@ JKT_EX/
 └── TESTING.md            # Testing guide
 ```
 
-## Documentation
+## 📝 Documentation
 
-- [DEVELOPMENT.md](DEVELOPMENT.md) - Detailed architecture and development guide
-- [TESTING.md](TESTING.md) - Comprehensive testing guide
+- 📖 [DEVELOPMENT.md](DEVELOPMENT.md) - Detailed architecture and development guide
+- 🧪 [TESTING.md](TESTING.md) - Comprehensive testing guide
 
-## Troubleshooting
+## ❓ Troubleshooting
 
 ### Database Errors
 
