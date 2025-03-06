@@ -213,6 +213,104 @@ Access control is implemented using:
 - **Resource ownership**: Users can only access their own resources by default
 - **Permission checking**: Dependencies that verify user permissions before endpoint execution
 
+## Core Workflows
+
+The JKT application implements several key workflows that demonstrate its capabilities and architecture.
+
+### Document Upload and Processing
+
+```mermaid
+sequenceDiagram
+    Client->>API: Upload document
+    API->>Service: Process document
+    Service->>Storage: Save original file
+    Service->>Processor: Extract text & metadata
+    Processor->>Service: Return text & metadata
+    Service->>DB: Save document metadata
+    Service->>Chunker: Split into chunks
+    Chunker->>Service: Return chunks
+    Service->>Embedder: Generate embeddings
+    Embedder->>Service: Return embeddings
+    Service->>DB: Save chunks with embeddings
+    Service->>API: Return success
+    API->>Client: Document accepted
+```
+
+This workflow demonstrates how:
+1. The client uploads a document via the API
+2. The service layer coordinates the entire process
+3. The file is saved to storage
+4. Text and metadata are extracted from the document
+5. The document is split into logical chunks
+6. Vector embeddings are generated for each chunk
+7. All data is saved to the database
+
+### Semantic Search
+
+```mermaid
+sequenceDiagram
+    Client->>API: Search query
+    API->>Service: Process query
+    Service->>Embedder: Generate query embedding
+    Embedder->>Service: Return embedding
+    Service->>DB: Vector similarity search
+    DB->>Service: Return matching chunks
+    Service->>API: Format results
+    API->>Client: Return search results
+```
+
+The semantic search workflow shows:
+1. A user enters a search query
+2. The query is transformed into a vector embedding
+3. The database performs a vector similarity search
+4. Relevant document chunks are retrieved
+5. Results are returned to the client
+
+### User Registration
+
+```mermaid
+sequenceDiagram
+    Client->>API: Registration request
+    API->>Validator: Validate input
+    Validator->>API: Input valid
+    API->>Service: Create user
+    Service->>PasswordHasher: Hash password
+    PasswordHasher->>Service: Return hash
+    Service->>DB: Save user
+    DB->>Service: User created
+    Service->>API: User details
+    API->>Client: Registration success
+```
+
+The user registration workflow illustrates:
+1. The client submits registration information
+2. Input is validated using Pydantic models
+3. The service layer handles business logic
+4. Password security is implemented
+5. The user record is created in the database
+
+### Document Question Answering
+
+```mermaid
+sequenceDiagram
+    Client->>API: Ask question about documents
+    API->>Service: Process question
+    Service->>Embedder: Generate question embedding
+    Embedder->>Service: Return embedding
+    Service->>DB: Vector similarity search
+    DB->>Service: Return relevant chunks
+    Service->>LLM: Generate answer with context
+    LLM->>Service: Return answer
+    Service->>API: Format response with citations
+    API->>Client: Return answer
+```
+
+The document Q&A workflow demonstrates:
+1. A user asks a question about their documents
+2. The system finds relevant document chunks using vector search
+3. A language model generates an answer based on the document context
+4. The response includes citations to the source documents
+
 ## Technology Stack
 
 ### Backend
