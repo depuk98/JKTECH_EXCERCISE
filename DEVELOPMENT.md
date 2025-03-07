@@ -16,9 +16,8 @@ This guide provides comprehensive information about the JKT application architec
 10. [Asynchronous Programming](#asynchronous-programming)
 11. [Performance Optimization](#performance-optimization)
 12. [Security Considerations](#security-considerations)
-13. [Deployment](#deployment)
-14. [Development Workflow](#development-workflow)
-15. [Troubleshooting](#troubleshooting)
+13. [Development Workflow](#development-workflow)
+14. [Troubleshooting](#troubleshooting)
 
 ## Architecture Overview
 
@@ -600,33 +599,57 @@ The application uses Python's async/await pattern for improved performance, espe
 ### Async Database Operations
 
 ```python
-# app/services/async_document.py
-from typing import List, Optional
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 
-from app.models.document import Document
-
-class AsyncDocumentService:
-    def __init__(self, db: AsyncSession):
-        self.db = db
-        
-    async def get(self, id: int) -> Optional[Document]:
-        result = await self.db.execute(
-            select(Document).where(Document.id == id)
-        )
-        return result.scalar_one_or_none()
+async def get_async_db():
+    """
+    FastAPI dependency that provides an async SQLAlchemy database session.
     
-    async def get_multi_by_user(
-        self, user_id: int, skip: int = 0, limit: int = 100
-    ) -> List[Document]:
-        result = await self.db.execute(
-            select(Document)
-            .where(Document.user_id == user_id)
-            .offset(skip)
-            .limit(limit)
+    Yields an async database session that is automatically closed when the request is finished.
+    
+    Yields:
+        AsyncSession: Async SQLAlchemy database session
+    """
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        finally:
+            await session.close() 
+@router.post("/upload", response_model=DocumentSchema)
+async def upload_document(
+    *,
+    db: AsyncSession = Depends(get_async_db),
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_active_user_async),
+) -> Any:
+   
+    # Validate file type
+    content_type = file.content_type
+    valid_types = [
+        "application/pdf",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/msword",
+        "text/plain"
+    ]
+    
+    if content_type not in valid_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid file type. Please upload PDF, DOCX, or TXT files.",
         )
-        return result.scalars().all()
+    
+    try:
+        document = await DocumentService.upload_document(
+            db=db, 
+            user=current_user,  # Pass the full user object, not just the ID
+            file=file
+        )
+        return document
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error uploading document: {str(e)}"
+        )
+
 ```
 
 ### Async Session Management
@@ -756,60 +779,6 @@ engine = create_engine(
 - **SQL Injection Prevention**: Parameterized queries via ORM
 - **File Upload Security**: Content-type validation, size limits
 
-## Deployment
-
-### Docker Configuration
-
-```dockerfile
-# Dockerfile
-FROM python:3.10-slim
-
-WORKDIR /app/
-
-COPY requirements.txt /app/
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY . /app/
-
-EXPOSE 8000
-
-# Run with gunicorn and uvicorn workers
-CMD ["gunicorn", "app.main:app", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000"]
-```
-
-### Docker Compose for Development
-
-```yaml
-# docker-compose.yml
-version: '3.8'
-
-services:
-  app:
-    build: .
-    ports:
-      - "8000:8000"
-    volumes:
-      - .:/app
-    env_file:
-      - .env
-    depends_on:
-      - db
-
-  db:
-    image: postgres:14
-    volumes:
-      - postgres_data:/var/lib/postgresql/data/
-    env_file:
-      - .env
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
-    ports:
-      - "5432:5432"
-
-volumes:
-  postgres_data:
 ```
 
 ### Production Considerations
